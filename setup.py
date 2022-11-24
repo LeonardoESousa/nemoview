@@ -12,16 +12,16 @@ from shutil import rmtree
 from setuptools import find_packages, setup, Command
 
 # Package meta-data.
-NAME = 'kmcdash'
-DESCRIPTION = 'Visualization tool for KMC simulations run with xcharge'
-URL = 'https://github.com/LeonardoESousa/kmcdash'
+NAME = 'nemoview'
+DESCRIPTION = 'Visualization tool for NEMO ensembles'
+URL = 'https://github.com/LeonardoESousa/nemoview'
 EMAIL = 'leonardo.sousa137@gmail.com'
-AUTHOR = 'Leonardo Evaristo de Sousa and Tiago de Sousa Araújo Cassiano'
+AUTHOR = 'Leonardo Evaristo de Sousa'
 REQUIRES_PYTHON = '>=3.6.0'
 VERSION = '0.1.0'
 
 # What packages are required for this module to be executed?
-REQUIRED = ['matplotlib<=3.5.0', 'voila==0.3.2', 'ipywidgets==7.7.2', 'pandas', 'IPython','Ipympl==0.7.0', 'jinja2==3.0.0']
+REQUIRED = ['matplotlib<=3.5.0', 'voila==0.3.2', 'ipywidgets==7.7.2', 'pandas', 'IPython','Ipympl==0.7.0', 'jinja2==3.0.0','nemophoto>=0.4.0']
 
 # What packages are optional?
 EXTRAS = {
@@ -105,7 +105,7 @@ setup(
     packages=find_packages(exclude=["tests", "*.tests", "*.tests.*", "tests.*"]),
     # If your package is a single module, use this instead of 'packages':
     #py_modules=['mypackage'],
-    entry_points={'console_scripts': ["kmcdash = kmcdash.__main__:main"]},
+    entry_points={'console_scripts': ["nemoview = nemoview.__main__:main"]},
     install_requires=REQUIRED,
     extras_require=EXTRAS,
     include_package_data=True,

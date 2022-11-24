@@ -1,0 +1,47 @@
+# figure Look
+figure.figsize: 6.4, 4.8
+
+
+#Grid
+axes.grid: True
+grid.linestyle: --      # dashed
+grid.linewidth: 0.8     # in points
+grid.alpha:     0.5     # transparency, between 0.0 and 1.0
+
+
+#Title
+axes.titlelocation: center  # alignment of the title: {left, right, center}
+# Scientific notation
+axes.formatter.limits: -3, 4
+axes.formatter.use_mathtext: True
+
+
+ytick.left: True
+xtick.bottom: True
+image.cmap: ocean
+lines.markersize: 6
+lines.linewidth: 2
+
+# Font 
+font.family: serif
+font.sans-serif: Times
+font.size: 14
+
+# no background
+savefig.transparent: False# True
+#remove white spaces
+savefig.bbox: tight
+
+# Figure
+figure.dpi: 100
+figure.autolayout: True
+
+# default color cycle
+axes.prop_cycle : cycler('color', ['4477AA', 'EE6677', '228833', 'CCBB44', '66CCEE', 'AA3377', 'BBBBBB']) 
+
+# Legend
+legend.frameon : False
+legend.fontsize: 14
+
+#Errorbar
+errorbar.capsize: 5
