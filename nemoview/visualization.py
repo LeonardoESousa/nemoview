@@ -4,6 +4,7 @@ import matplotlib.patches as patches
 from nemo.tools import naming
 import nemo.analysis
 import ipywidgets as widgets
+import warnings
 plt.style.use(['labplot','labplot_note'])
 
 thecolor = 'black'
@@ -36,7 +37,11 @@ def fill(ax,xmin,xmax,y,text):
         
         
 def format_rate(r,dr):
-    exp = int(np.log10(r))
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        exp = int(np.nan_to_num(np.log10(r)))
+    if exp < -100:
+        exp = -100    
     if exp != 0:
         s=f'${r/10**exp:.1f}\pm{dr/10**exp:.1f}\\times10^{exp}$ $s^{{-1}}$'
         #s=f'${r/10**exp:.1f}\\times10^{exp}$ $s^{{^-1}}$'
@@ -123,13 +128,13 @@ def plot_transitions(data,ax,cutoff):
     for i in range(len(energies)):
         style = f"Fancy, tail_width=4, head_width=12, head_length=8"#, tail_width={4*weights[i]}, head_width={12*weights[i]}, head_length={8*weights[i]}"
         kw = dict(arrowstyle=style, color=S.color(state),zorder=10,mutation_scale=weights[i])
-        if np.round(weights[i],2) > cutoff or alvos[i] == 'S0':
+        if np.round(weights[i],2) > cutoff or (alvos[i] == 'S0' and np.round(weights[i],2) > 0):
             if alvos[i] == 'S0':          
                 xmin, xmax = S.x(state)
                 if trans[i] == '-':      
-                    a3 = patches.FancyArrowPatch((xmin, base), (xmin, 0),**kw)
+                    a3 = patches.FancyArrowPatch((xmin, base), (xmin, 0),**kw,label=f'{state[0]}$_{state[1]}\\: \\to \\:${alvos[i][0]}$_{alvos[i][1:]}$: '+format_rate(rates[i],error[i]))
                 else:
-                    a3 = patches.FancyArrowPatch((xmax, base), (xmax, 0),connectionstyle=f"arc3,rad={-0.1}",**kw,label='a')
+                    a3 = patches.FancyArrowPatch((xmax, base), (xmax, 0),connectionstyle=f"arc3,rad={-0.1}",**kw,label=f'{state[0]}$_{state[1]}\\leadsto${alvos[i][0]}$_{alvos[i][1:]}$: '+format_rate(rates[i],error[i]))
                 ax.add_patch(a3)
                 #ax.text(x=1.01*xmin+abs(xmax-xmin)/2,y=base/3, s=f'{state[0]}$_{state[1]}\\to$S$_0$:\n '+format_rate(rates[i],error[i]),ha='center',va='center',fontsize=10)#,backgroundcolor='white')
             else:
@@ -138,7 +143,7 @@ def plot_transitions(data,ax,cutoff):
                 fill(ax,xmin,xmax,energies[i],f'{alvos[i][0]}$_{alvos[i][1:]}$')
                 ax.hlines(y=energies[i],xmin=xmin,xmax=xmax,lw=lw,color=S.color(state))
                 fx, tx, curve = S.arrow(state,alvos[i], energies[i]-base)
-                a3 = patches.FancyArrowPatch((fx, base), (tx, energies[i]),connectionstyle=f"arc3,rad={curve*0.5}",**kw,label=f'{state[0]}$_{state[1]}\\to${alvos[i][0]}$_{alvos[i][1:]}$: '+format_rate(rates[i],error[i]))
+                a3 = patches.FancyArrowPatch((fx, base), (tx, energies[i]),connectionstyle=f"arc3,rad={curve*0.5}",**kw,label=f'{state[0]}$_{state[1]}\\leadsto${alvos[i][0]}$_{alvos[i][1:]}$: '+format_rate(rates[i],error[i]))
                 ax.add_patch(a3)
                 #pos = a3.get_path().vertices
                 #ax.text(x=smax+(tmin-smax)/2,y=np.max(pos[:,1]), s=format_rate(dataS[i,1],dataS[i,2]),ha='center',va='center',fontsize=12)#,backgroundcolor='white')
