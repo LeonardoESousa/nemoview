@@ -43,7 +43,7 @@ def format_rate(r,dr):
     if exp < -100:
         exp = -100    
     if exp != 0:
-        s=f'${r/10**exp:.1f}\pm{dr/10**exp:.1f}\\times10^{exp}$ $s^{{-1}}$'
+        s=f'${r/10**exp:.1f}\pm{dr/10**exp:.1f}\\times10^{{{exp}}}$ $s^{{-1}}$'
         #s=f'${r/10**exp:.1f}\\times10^{exp}$ $s^{{^-1}}$'
     else:
         s=f'${r/10**exp:.1f}\pm{dr/10**exp:.1f}$ $s^{{-1}}$'
