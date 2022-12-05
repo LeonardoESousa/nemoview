@@ -5,7 +5,6 @@ from nemo.tools import naming
 import nemo.analysis
 import ipywidgets as widgets
 import warnings
-plt.style.use(['labplot','labplot_note'])
 
 thecolor = 'black'
 cmap = plt.get_cmap('cividis')
@@ -30,10 +29,9 @@ def fill(ax,xmin,xmax,y,text):
         for txt in ax.texts:
             if txt.get_position()[0] == txt_x and txt.get_position()[1] != 0:
                 txt.set_visible(False)
-        #ax.text(x=txt_x,y=(newy+y)/2, s=text,ha='center',va='center_baseline',color=thecolor)
         ax.text(x=txt_x,y=0.95*min(newy,y), s=text,ha='center',va='top',color=thecolor)
     except:
-        ax.text(x=xmin+(xmax-xmin)/2,y=0.95*y, s=text,ha='center',va='top',color=thecolor)#,backgroundcolor='white')
+        ax.text(x=xmin+(xmax-xmin)/2,y=0.95*y, s=text,ha='center',va='top',color=thecolor)
         
         
 def format_rate(r,dr):
@@ -44,10 +42,8 @@ def format_rate(r,dr):
         exp = -100    
     if exp != 0:
         s=f'${r/10**exp:.1f}\pm{dr/10**exp:.1f}\\times10^{{{exp}}}$ $s^{{-1}}$'
-        #s=f'${r/10**exp:.1f}\\times10^{exp}$ $s^{{^-1}}$'
     else:
         s=f'${r/10**exp:.1f}\pm{dr/10**exp:.1f}$ $s^{{-1}}$'
-        #s=f'${r/10**exp:.1f}$ $s^{{^-1}}$'
     return s
 
 class State():
@@ -78,32 +74,18 @@ class State():
             return xmin, xmin + self.size           
 
     def arrow(self,state,alvo,delta):
-        #delta = np.sign(delta)*np.heaviside(delta-0.01,0)
         if 'T' in state and 'T' in alvo:
              xi, xf, factor = self.x(state)[1], self.x(alvo)[0]+3*self.size/4, 1
         elif 'T' in state and 'S' in alvo:
             xi, xf, factor = self.x(state)[1], self.x(alvo)[0]+3*self.size/4, 1
-            #if delta > 0:
-            #    xi, xf, factor = self.x(state)[1], self.x(alvo)[0]+3*self.size/4, -1
-            #elif delta < 0:
-            #    xi, xf, factor = self.x(state)[1], self.x(alvo)[0]+3*self.size/4, 1
-            #else:
-            #    xi, xf, factor = self.x(state)[1], self.x(alvo)[0]+3*self.size/4, 0
         elif 'S' in state and 'T' in alvo:
             xi, xf, factor = self.x(state)[1], self.x(alvo)[0]+self.size/4, -1
-            #if delta > 0:
-            #    xi, xf, factor = self.x(state)[0], self.x(alvo)[0], -1
-            #elif delta < 0:
-            #    xi, xf, factor = self.x(state)[0], self.x(alvo)[0], -1  
-            #else:
-            #    xi, xf, factor = self.x(state)[0], self.x(alvo)[0], 0   
         else:
             xi, xf, factor = self.x(state)[0], self.x(alvo)[0], 1
         return  xi, xf, factor    
 
 def plot_transitions(data,ax,cutoff):
     lw = 5
-    #sigmas      = data['AvgSigma'].values
     rates       = data['Rate'].values
     error       = data['Error'].values 
     transitions = data['Transition'].values
@@ -121,12 +103,12 @@ def plot_transitions(data,ax,cutoff):
     ##Makes S0 lines
     xmin, xmax = S.x(state)
     fill(ax,xmin,xmax,base,f'{state[0]}$_{num}$')
-    ax.hlines(y=base,xmin=xmin,xmax=xmax,lw=lw,color=S.color(state))  #####   
+    ax.hlines(y=base,xmin=xmin,xmax=xmax,lw=lw,color=S.color(state))  
     ax.hlines(y=0,xmin=xmin,xmax=xmax,lw=lw,color=S.color(state))     
     ax.text(x=xmin+abs(xmax-xmin)/2,y=0, s=f'S$_{0}$',ha='center',va='center',color=thecolor,backgroundcolor='white')
     ##
     for i in range(len(energies)):
-        style = f"Fancy, tail_width=4, head_width=12, head_length=8"#, tail_width={4*weights[i]}, head_width={12*weights[i]}, head_length={8*weights[i]}"
+        style = f"Fancy, tail_width=4, head_width=12, head_length=8"
         kw = dict(arrowstyle=style, color=S.color(state),zorder=10,mutation_scale=weights[i])
         if np.round(weights[i],2) > cutoff or (alvos[i] == 'S0' and np.round(weights[i],2) > 0):
             if alvos[i] == 'S0':          
@@ -136,7 +118,6 @@ def plot_transitions(data,ax,cutoff):
                 else:
                     a3 = patches.FancyArrowPatch((xmax, base), (xmax, 0),connectionstyle=f"arc3,rad={-0.1}",**kw,label=f'{state[0]}$_{state[1]}\\leadsto${alvos[i][0]}$_{alvos[i][1:]}$: '+format_rate(rates[i],error[i]))
                 ax.add_patch(a3)
-                #ax.text(x=1.01*xmin+abs(xmax-xmin)/2,y=base/3, s=f'{state[0]}$_{state[1]}\\to$S$_0$:\n '+format_rate(rates[i],error[i]),ha='center',va='center',fontsize=10)#,backgroundcolor='white')
             else:
                 xmin, xmax = S.x(alvos[i])
                 newy = check(ax,xmin,xmax)
@@ -145,8 +126,7 @@ def plot_transitions(data,ax,cutoff):
                 fx, tx, curve = S.arrow(state,alvos[i], energies[i]-base)
                 a3 = patches.FancyArrowPatch((fx, base), (tx, energies[i]),connectionstyle=f"arc3,rad={curve*0.5}",**kw,label=f'{state[0]}$_{state[1]}\\leadsto${alvos[i][0]}$_{alvos[i][1:]}$: '+format_rate(rates[i],error[i]))
                 ax.add_patch(a3)
-                #pos = a3.get_path().vertices
-                #ax.text(x=smax+(tmin-smax)/2,y=np.max(pos[:,1]), s=format_rate(dataS[i,1],dataS[i,2]),ha='center',va='center',fontsize=12)#,backgroundcolor='white')
+                
                            
 def write_energies(ax):
     xmin = np.inf
@@ -172,11 +152,11 @@ def write_energies(ax):
     dleft, dright = [100], [100]
     for y in sorted(yleft):
         if min(np.abs([y-i for i in dleft])) > 0.12:    
-            ax.text(x=0.98*xmin,y=y, s=f'{y:.2f} eV',ha='right',va='center',fontsize=10,color=thecolor)#,backgroundcolor='white')    
+            ax.text(x=0.98*xmin,y=y, s=f'{y:.2f} eV',ha='right',va='center',fontsize=10,color=thecolor)   
             dleft.append(y)
     for y in sorted(yright):    
         if min(np.abs([y-i for i in dright])) > 0.12:
-            ax.text(x=1.02*xmax,y=y, s=f'{y:.2f} eV',ha='left',va='center',fontsize=10,color=thecolor)#,backgroundcolor='white')          
+            ax.text(x=1.02*xmax,y=y, s=f'{y:.2f} eV',ha='left',va='center',fontsize=10,color=thecolor)          
             dright.append(y)
     ax.set_xlim([0.9*xmin,1.1*xmax])
 
@@ -198,9 +178,7 @@ def make_diagram(files,dielec,cutoff=0.01):
     #plt.savefig(arquivo,facecolor='white',dpi=300)#, transparent=True)
     return ax
      
-#dielec = (3.8,1.5)     
-#make_diagram(['Ensemble_s1_.lx','Ensemble_t1_.lx','Ensemble_t2_.lx'],dielec,cutoff=0.05)                             
-
+                        
 
 #################################################################################################################################
     
