@@ -52,9 +52,7 @@ class State():
         self.tmin, self.tmax = 3.7,7
         singlets = [i for i in alvos if 'S' in i and '0' not in i]
         triplets = [i for i in alvos if 'T' in i and '0' not in i]
-        div      = max(len(set(singlets)),len(set(triplets)))
-        initial = np.linspace(self.tmin,self.tmax,div)
-        self.size = initial[1] - initial[0]
+        self.size = 0.5
 
     def color(self,state):
         num  = int(state[1:])
