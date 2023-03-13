@@ -149,12 +149,12 @@ def write_energies(ax):
             pass 
     dleft, dright = [100], [100]
     for y in sorted(yleft):
-        if min(np.abs([y-i for i in dleft])) > 0.12:    
-            ax.text(x=0.98*xmin,y=y, s=f'{y:.2f} eV',ha='right',va='center',fontsize=10,color=thecolor)   
+        if min(np.abs([y-i for i in dleft])) > 0.15:    
+            ax.text(x=0.98*xmin,y=y, s=f'{y:.2f} eV',ha='right',va='center',fontsize=13,color=thecolor)   
             dleft.append(y)
     for y in sorted(yright):    
-        if min(np.abs([y-i for i in dright])) > 0.12:
-            ax.text(x=1.02*xmax,y=y, s=f'{y:.2f} eV',ha='left',va='center',fontsize=10,color=thecolor)          
+        if min(np.abs([y-i for i in dright])) > 0.15:
+            ax.text(x=1.02*xmax,y=y, s=f'{y:.2f} eV',ha='left',va='center',fontsize=13,color=thecolor)          
             dright.append(y)
     ax.set_xlim([0.9*xmin,1.1*xmax])
 
