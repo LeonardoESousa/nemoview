@@ -235,5 +235,60 @@ def eps_nr(eps0=1,nr0=1):
     
     
     
-   
+def vertical_tanh(x, a, b):
+    return (a-b)/2*np.tanh(3*(x-1)) + (a+b)/2
 
+def network_spectrum(breakdown,ax,initial,process,color,wave):
+    func = vertical_tanh
+    x = np.linspace(-1,1.5,100)
+    cmap = plt.get_cmap('coolwarm')
+    # make list of colors from 0 to 1
+    if process == 'emi':
+        transition = initial+'->S0'
+        width = breakdown[transition.upper()].to_numpy()
+        d_initial = breakdown['chi_'+initial.lower()].to_numpy()
+        d_final = breakdown['eng'].to_numpy()
+    else:
+        transitions = [col for col in breakdown.columns if '->' in col]
+        width = breakdown[transitions].to_numpy().flatten()
+        width /= np.max(width)
+        d_initial = breakdown[[col for col in breakdown.columns if 'chi_' in col]].to_numpy().flatten()
+        d_final = breakdown[[col for col in breakdown.columns if 'eng_' in col]].to_numpy().flatten()
+    width /= np.max(width)
+    if wave:
+        d_final = 1239.8/d_final
+    for i in range(breakdown.shape[0]):
+        if width[i] > 0.01:
+            y = func(x,d_initial[i],d_final[i])
+            ax.plot(y,x,lw=2, alpha=width[i], color=cmap(min(d_initial[i],1)))#color, zorder=10)
+    #hist, bins = np.histogram(width,bins=100)
+    #ax22.plot((bins[1:]+bins[:-1])/2,hist/np.sum(hist),color=color)
+
+
+# define function that equals a for x=-5 and b for x=5 using tanh
+def left_tanh(x, a, b):
+    return (b-a)/2*np.tanh(3*x) + (a+b)/2
+
+def right_tanh(x, a, b):
+    return (a-b)/2*np.tanh(3*x) + (a+b)/2
+
+def plot_network(breakdown,ax,side,transition):
+    scheme = {'left': {'color': '#4477AA', 'func':left_tanh},'right': {'color': '#EE6677', 'func':right_tanh}}
+    color = scheme[side]['color']
+    func = scheme[side]['func']
+    initial = transition.split('~>')[0]
+    final = transition.split('~>')[1]
+    width = breakdown[transition.upper()].to_numpy()
+    width /= np.max(width)
+    d_initial = breakdown['chi_'+initial.lower()].to_numpy()
+    d_final = breakdown['chi_'+final.lower()].to_numpy()
+    x = np.linspace(-1,1,100)
+    for i in range(breakdown.shape[0]):
+        if width[i] > 0.01:
+            y = func(x,d_initial[i],d_final[i])
+            if width[i] ==1:
+                ax.plot(x,y,lw=2, alpha=width[i], color=color,label=f'{initial[0].upper()}$_{{{initial[1:]}}}\\leadsto$ {final[0].upper()}$_{{{final[1:]}}}$') 
+            else:    
+                ax.plot(x,y,lw=2, alpha=width[i], color=color)
+    #hist, bins = np.histogram(width,bins=100)
+    #ax22.plot((bins[1:]+bins[:-1])/2,hist/np.sum(hist),color=color)
