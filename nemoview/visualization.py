@@ -1,10 +1,11 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
-from nemo.tools import naming
+import nemo.tools
 import nemo.analysis
 import ipywidgets as widgets
 import warnings
+from scipy.interpolate import interp1d
 
 thecolor = 'black'
 cmap = plt.get_cmap('cividis')
@@ -172,7 +173,7 @@ def make_diagram(files,dielec,cutoff=0.01):
     #for item in leg.legendHandles:
     #    item.set_visible(False)
     write_energies(ax)
-    arquivo = naming('diagram.png')
+    #arquivo = nemo.tools.naming('diagram.png')
     #plt.savefig(arquivo,facecolor='white',dpi=300)#, transparent=True)
     return ax
      
@@ -292,3 +293,80 @@ def plot_network(breakdown,ax,side,transition):
                 ax.plot(x,y,lw=2, alpha=width[i], color=color)
     #hist, bins = np.histogram(width,bins=100)
     #ax22.plot((bins[1:]+bins[:-1])/2,hist/np.sum(hist),color=color)
+
+##CALCULATES FLUORESCENCE LIFETIME IN S########################
+def calc_lifetime(xd,yd,dyd):
+    #Integrates the emission spectrum
+    IntEmi = np.trapz(yd,xd)
+    taxa   = (1/nemo.tools.hbar)*IntEmi
+    error  = (1/nemo.tools.hbar)*np.sqrt(np.trapz((dyd**2),xd))
+    dlife  = (1/taxa)*(error/taxa)
+    return 1/taxa, dlife 
+###############################################################
+
+##CALCULATES FORSTER RADIUS####################################
+def radius(acceptor,donor,kappa):
+    acceptor = acceptor.to_numpy()
+    xa  = acceptor[:,0]
+    ya  = acceptor[:,-2]
+    dya = acceptor[:,-1]
+    
+    xd  = donor['Energy'].values
+    yd  = donor['Diffrate'].values
+    dyd = donor['Error'].values
+                
+    #Speed of light
+    c = 299792458  #m/s
+    
+    #Finds the edges of interpolation
+    minA = min(xa)
+    minD = min(xd)
+    maxA = max(xa)
+    maxD = max(xd)
+    MIN  = max(minA,minD)
+    MAX  = min(maxA,maxD)
+    
+    if MIN > MAX:
+        return 0, 0 
+    X = np.linspace(MIN, MAX, 1000)
+    f1 = interp1d(xa, ya, kind='cubic')
+    f2 = interp1d(xd, yd, kind='cubic')
+    f3 = interp1d(xa, dya, kind='cubic')
+    f4 = interp1d(xd, dyd, kind='cubic')
+    
+
+    YA  = f1(X)
+    YD  = f2(X)
+    DYA = f3(X)
+    DYD = f4(X)
+
+    #Calculates the overlap
+    Overlap = YA*YD/(X**4)
+
+    #Overlap error
+    OverError   = Overlap*np.sqrt((DYA/YA)**2 + (DYD/YD)**2)
+
+    #Integrates overlap
+    IntOver = np.trapz(Overlap, X)
+
+    #Integrated Overlap Error
+    DeltaOver = np.sqrt(np.trapz((OverError**2),X))       
+
+    #Gets lifetime
+    tau, delta_tau = calc_lifetime(xd,yd,dyd)	
+
+    #Calculates radius sixth power
+    c *= 1e10
+    const   = (nemo.tools.hbar**3)*(9*(c**4)*(kappa**2)*tau)/(8*np.pi)
+    radius6 = const*IntOver
+
+    #Relative error in radius6
+    delta   = np.sqrt((DeltaOver/IntOver)**2 + (delta_tau/tau)**2)
+
+    #Calculates radius
+    radius  = radius6**(1/6)
+
+    #Error in radius
+    delta_radius = radius*delta/6
+    return radius, delta_radius
+###############################################################    
