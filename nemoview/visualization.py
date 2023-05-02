@@ -239,7 +239,11 @@ def eps_nr(eps0=1,nr0=1):
 def vertical_tanh(x, a, b):
     return (a-b)/2*np.tanh(3*(x-1)) + (a+b)/2
 
-def network_spectrum(breakdown,ax,initial,process,color,wave):
+def network_spectrum(breakdown,ax,initial,process,wave):
+    ax1, ax2 = ax
+    #get x limits of ax2
+    xmin, xmax = ax1.get_xlim()
+    x2min, x2max = ax2.get_xlim()
     func = vertical_tanh
     x = np.linspace(-1,1.5,100)
     cmap = plt.get_cmap('coolwarm')
@@ -258,12 +262,12 @@ def network_spectrum(breakdown,ax,initial,process,color,wave):
     width /= np.max(width)
     if wave:
         d_final = 1239.8/d_final
+    scale = (x2max-x2min)/(xmax-xmin)
+    d_final = (d_final-xmin)*scale + x2min    
     for i in range(breakdown.shape[0]):
-        if width[i] > 0.01:
+        if width[i] > 0.01:  
             y = func(x,d_initial[i],d_final[i])
-            ax.plot(y,x,lw=2, alpha=width[i], color=cmap(min(d_initial[i],1)))#color, zorder=10)
-    #hist, bins = np.histogram(width,bins=100)
-    #ax22.plot((bins[1:]+bins[:-1])/2,hist/np.sum(hist),color=color)
+            ax2.plot(y,x,lw=2, alpha=width[i], color=cmap(d_initial[i]/x2max))
 
 
 # define function that equals a for x=-5 and b for x=5 using tanh
