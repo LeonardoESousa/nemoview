@@ -309,7 +309,7 @@ def calc_lifetime(xd,yd,dyd):
 ###############################################################
 
 ##CALCULATES FORSTER RADIUS####################################
-def radius(acceptor,donor,kappa):
+def radius(acceptor,donor,kappa2):
     acceptor = acceptor.to_numpy()
     xa  = acceptor[:,0]
     ya  = acceptor[:,-2]
@@ -361,7 +361,7 @@ def radius(acceptor,donor,kappa):
 
     #Calculates radius sixth power
     c *= 1e10
-    const   = (nemo.tools.hbar**3)*(9*(c**4)*(kappa**2)*tau)/(8*np.pi)
+    const   = (nemo.tools.hbar**3)*(9*(c**4)*kappa2*tau)/(8*np.pi)
     radius6 = const*IntOver
 
     #Relative error in radius6
