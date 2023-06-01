@@ -233,9 +233,44 @@ def eps_nr(eps0=1,nr0=1):
         disabled=False
     ) 
     return eps,nr
+
+# normalized gaussian with mean 0 and std scale
+def gauss(x,mean,scale):
+    return np.exp(-0.5*(x*1e-10-mean)**2/scale**2)/np.sqrt(2*np.pi*scale**2)
+
+def temperature(T0=300):
+    T = widgets.BoundedFloatText(
+        value=T0,
+        min=1,
+        max=1000.0,
+        step=1,
+        description='T (K)',
+        disabled=False
+    )
+    return T
     
-    
-    
+
+def importance(data,temp):
+    freq = data['freq']
+    freq = freq[~np.isnan(freq)].to_numpy()
+    mass = data['mass']
+    mass = mass[~np.isnan(mass)].to_numpy()
+    kbT  = data['kbT'][0]
+    displacements = data[[i for i in data.columns if 'mode_' in i]].to_numpy()
+    scale0 = np.sqrt(nemo.tools.hbar2/(2*mass*freq*np.tanh(nemo.tools.hbar*freq/(2*kbT))))
+    scale1 = np.sqrt(nemo.tools.hbar2/(2*mass*freq*np.tanh(nemo.tools.hbar*freq/(2*nemo.tools.kb*temp))))
+    mean = 0 
+    prob0 = gauss(displacements,mean,scale0)
+    prob1 = gauss(displacements,mean,scale1)
+    importance = prob1/prob0
+    importance = np.prod(importance,axis=1)
+    return importance
+
+
+
+
+
+
 def vertical_tanh(x, a, b):
     return (a-b)/2*np.tanh(3*(x-1)) + (a+b)/2
 
