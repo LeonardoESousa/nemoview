@@ -1,12 +1,13 @@
 # nemoview
 Visualization tool for NEMO ensembles
 
+You can run it with Binder. Just click here:  [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/LeonardoESousa/nemoview/HEAD?labpath=voila%2Frender%2Fnemoview%2Fnemodash.ipynb)
+
 ## How to install it?
 
-Run:
+To run nemoview locally in your computer, run:
 
 `pip install git+https://github.com/LeonardoESousa/nemoview`
-
 
 ## How to use it?
 
