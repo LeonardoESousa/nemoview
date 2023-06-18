@@ -6,6 +6,7 @@ import nemo.analysis
 import ipywidgets as widgets
 import warnings
 from scipy.interpolate import interp1d
+import os
 
 thecolor = 'black'
 cmap = plt.get_cmap('cividis')
@@ -180,7 +181,21 @@ def make_diagram(files,dielec,cutoff=0.01):
                         
 
 #################################################################################################################################
-    
+##PREVENTS OVERWRITING#########################################
+def naming(arquivo, folder='.'):
+    new_arquivo = arquivo
+    if arquivo in os.listdir(folder):
+        duplo = True
+        vers = 2
+        while duplo:
+            new_arquivo = str(vers)+arquivo
+            if new_arquivo in os.listdir(folder):
+                vers += 1
+            else:
+                duplo = False
+    return new_arquivo        
+###############################################################
+
 def trpl(times,bin_num=10):
     num = int((max(times)-min(times))/bin_num)
     hist, bins = np.histogram(times, bins=np.linspace(min(times),max(times),num),density=True)    
@@ -221,6 +236,7 @@ def eps_nr(eps0=1,nr0=1):
         max=100.0,
         step=0.1,
         description='$\epsilon$',
+        tooltip='Dielectric constant',
         disabled=False
     )
     
@@ -230,6 +246,7 @@ def eps_nr(eps0=1,nr0=1):
         min=1,
         max=10.0,
         description='$n_r$',
+        tooltip='Refractive index',
         disabled=False
     ) 
     return eps,nr
