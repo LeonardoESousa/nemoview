@@ -262,6 +262,7 @@ def temperature(T0=300):
         max=1000.0,
         step=1,
         description='T (K)',
+        tooltip='Temperature',
         disabled=False
     )
     return T
