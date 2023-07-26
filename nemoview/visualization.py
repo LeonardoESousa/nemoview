@@ -105,7 +105,7 @@ def plot_transitions(data,ax,cutoff):
     fill(ax,xmin,xmax,base,f'{state[0]}$_{num}$')
     ax.hlines(y=base,xmin=xmin,xmax=xmax,lw=lw,color=S.color(state))  
     ax.hlines(y=0,xmin=xmin,xmax=xmax,lw=lw,color=S.color(state))     
-    ax.text(x=xmin+abs(xmax-xmin)/2,y=0, s=f'S$_{0}$',ha='center',va='center',color=thecolor,backgroundcolor='white')
+    ax.text(x=xmin+abs(xmax-xmin)/2,y=-0.4, s=f'S$_{0}$',ha='center',va='center',color=thecolor)
     ##
     for i in range(len(energies)):
         style = f"Fancy, tail_width=4, head_width=12, head_length=8"
