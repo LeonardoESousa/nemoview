@@ -43,13 +43,13 @@ Below the diagram you will find a set of tables, one for each excited state ense
 
  - Prob: The probability for each transition in %. This probability is calculated by computing the ratio between the rate and the sum of all rates computed from that same initial state.
 
- - <Gap>: The average energy gap for each transition in eV.
+ - &lt;Gap&gt;: The average energy gap for each transition in eV.
 
- - <SOC>: The average spin-orbit coupling associated with each transition in meV.
+ - &lt;SOC&gt;: The average spin-orbit coupling associated with each transition in meV.
 
  - $<\sigma>$: The average standard deviation in eV of the gaussian functions in the nuclear ensemble-derived expressions for rates. 
 
- - <Conc>: The average fraction in % of conformations in the ensemble who are actively contributing to the total calculated rate.
+ - &lt;Conc&gt;: The average fraction in % of conformations in the ensemble who are actively contributing to the total calculated rate.
 
 ### Options
 
@@ -74,11 +74,11 @@ Here, molecular spectra are presented. The kind of spectrum depends on the ensem
 
 Below the spectrum plots, three tables are shown:
 
-        1. Spectral Peaks: Displays the position of the spectral peaks in eV and nm of all spectra being plotted.
+1. Spectral Peaks: Displays the position of the spectral peaks in eV and nm of all spectra being plotted.
 
-        2. Radiative Lifetimes: Displays the radiative lifetime in s of the selected excited states along with the corresponding uncertainty.
+2. Radiative Lifetimes: Displays the radiative lifetime in s of the selected excited states along with the corresponding uncertainty.
 
-        3. Förster Radii: Displays the Förster radii in Å calculated from the simulated spectra for all possible combinations of donor and acceptor. Includes Förster radii for triplet-to-singlet transitions. Uncertainties are also displayed. 
+3. Förster Radii: Displays the Förster radii in Å calculated from the simulated spectra for all possible combinations of donor and acceptor. Includes Förster radii for triplet-to-singlet transitions. Uncertainties are also displayed. 
 
 ### Options
 
@@ -104,7 +104,7 @@ Some options are available to change the presentation of results in this tab.
 
 ### Susceptibility
 
-Solvent susceptibility is defined as the ratio between the nonequilibrium state-specific solvent correction $\lambda^{neq}$ and $\alpha_{opt} = (n_r^2-1)/(n_r^2+1)$. It corresponds to the maximum solvent correction that state can suffer, meaning the energy correction due to a solvent in the limit of $n_r \to \infnty$. The higher the susceptibility of a state, the higher the sensitivity of that excited state with respect to changes in solvent polarity. As such it correlates with the degree of charge-transfer character of the state. 
+Solvent susceptibility is defined as the ratio between the nonequilibrium state-specific solvent correction $\lambda^{neq}$ and $\alpha_{opt} = (n_r^2-1)/(n_r^2+1)$. It corresponds to the maximum solvent correction that state can suffer, meaning the energy correction due to a solvent in the limit of $n_r \to \infty$. The higher the susceptibility of a state, the higher the sensitivity of that excited state with respect to changes in solvent polarity. As such it correlates with the degree of charge-transfer character of the state. 
 
 In this tab, two plots are shown. The first one shows the distribution of susceptibilites for each selected state of each ensemble. The second one displays the same data in the form of a heatmap, indicating the composition of each ensemble in terms of solvent susceptibility. 
 
