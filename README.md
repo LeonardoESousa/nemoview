@@ -16,3 +16,7 @@ Once installed, use the command:
 `nemoview`
 
 The application will open in your browser.
+
+## Tutorial
+
+For details on the analyses available in Nemoview, check the [tutorial](https://github.com/LeonardoESousa/nemoview/tree/main/Tutorial.md).
