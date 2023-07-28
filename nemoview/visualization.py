@@ -29,7 +29,7 @@ def fill(ax,xmin,xmax,y,text):
         ax.fill_between([xmin,xmax],y,newy,alpha=0.5,hatch='x',color=cmap(0.5))
         txt_x = xmin+(xmax-xmin)/2
         for txt in ax.texts:
-            if txt.get_position()[0] == txt_x and txt.get_position()[1] != 0:
+            if txt.get_position()[0] == txt_x and txt.get_position()[1] != -0.4:
                 txt.set_visible(False)
         ax.text(x=txt_x,y=0.95*min(newy,y), s=text,ha='center',va='top',color=thecolor)
     except:
