@@ -23,7 +23,7 @@ The application will open in your browser.
 
 Click on the **Upload** button. Select the ensemble files you want to analyze. You may select several ensemble files for different states and/or different molecules to be analyzed simultaneously. Examples of ensemble files can be found [here](https://github.com/LeonardoESousa/nemoview/tree/main/Tutorial).
 
-Once the ensemble files are loaded, a widget appears where one is able to change the ensemble file names. Ensembles obtained from a same molecule in different states (S0, S1, T1 etc) should have the same name. This will help nemoview bundle together the information for each molecule. For example, if you uploaded six ensembles -- S0, S1 and T1 ensembles for molecule A and S0, S1 and T1 ensembles for molecule B --, use the text boxes and write A in the fields corresponding to ensembles coming from molecule A and B in the fields corresponding to ensembles coming from molecule B. Any name will do, as long as it is different for each molecule. Once this is done, go ahead and click on **Read file**.
+Once the ensemble files are loaded, a widget appears where one is able to change the ensemble file names. Ensembles obtained from a same molecule in different states ($S_0$, $S_1$, $T_1$ etc) should have the same name. This will help nemoview bundle together the information for each molecule. For example, if you uploaded six ensembles -- $S_0$, $S_1$ and $T_1$ ensembles for molecule A and $S_0$, $S_1$ and $T_1$ ensembles for molecule B --, use the text boxes and write A in the fields corresponding to ensembles coming from molecule A and B in the fields corresponding to ensembles coming from molecule B. Any name will do, as long as it is different for each molecule. Once this is done, go ahead and click on **Read file**.
 
 
 # Analysis
@@ -76,7 +76,7 @@ Some options are available to change the presentation of results in this tab.
 
 ## Spectra
 <figure>
-  <img src="Spectra.png" alt="Alt Text" width="2000">
+  <img src="Spectra.png" alt="Spectrum plots" width="2000">
   <figcaption>Example of absorption and emission spectra for two molecules. Tables below show spectral peaks, radiative lifetimes and Förster radii.</figcaption>
 </figure> 
 
@@ -115,7 +115,7 @@ Some options are available to change the presentation of results in this tab.
 
 ### Susceptibility
 <figure>
-  <img src="Susceptibility.png" alt="Alt Text" width="2000">
+  <img src="Susceptibility.png" alt="Susceptibility plots" width="2000">
   <figcaption>Susceptibility plots show how sensitive different excited states are with respect to changes in solvent polarity. It also serves as a proxy for the degree of charge transfer character of a state.</figcaption>
 </figure> 
 
@@ -141,11 +141,11 @@ Some options are available to change the presentation of results in this tab.
 
 ### Network
 <figure>
-  <img src="Network.png" alt="Alt Text" width="2000">
+  <img src="Network.png" alt="Network maps" width="2000">
   <figcaption>Network plots show the mapping between the susceptibility of initial and final states in ISC processes. Mappings from low to high susceptibility (and vice versa) indicate transitions between states of different electronic character.</figcaption>
 </figure>
 
-The network tab shows a mapping between the solvent susceptibilities of each conformation in the ensemble from the initial state to the final state for ISC transfers. For example, take the S1~>T1 transfer. Each conformation in the ensemble contributes with the total rate with a certain amount and each conformation has a certain S1 and T1 energies. The network map connects the solvent susceptibility of the S1 state of each conformation with the corresponding solvent susceptibility of the T1 state. Line opaqueness is proportional to the contribtution of each conformation to the total rate.  In this sense, curves that go from high to low susceptibility indicate that the ISC transfer takes place between a charge-transfer S1 state and a localized T1 state. As such, the network map allows to investigate the validity of El Sayed's rule for a given molecule. Singlet to triplet ISC transfers are shown from left to right, whereas triplet to singlet transfers are shown right to left. More than one transfer can be mapped at the same time from the window in the left. To analyse more than one transfer at the same time, click on the corresponding state while holding the "ctrl" key. 
+The network tab shows a mapping between the solvent susceptibilities of each conformation in the ensemble from the initial state to the final state for ISC transfers. For example, take the S1~>T1 transfer. Each conformation in the ensemble contributes with the total rate with a certain amount and each conformation has a certain $S_1$ and $T_1$ energies. The network map connects the solvent susceptibility of the $S_1$ state of each conformation with the corresponding solvent susceptibility of the $T_1$ state. Line opaqueness is proportional to the contribtution of each conformation to the total rate.  In this sense, curves that go from high to low susceptibility indicate that the ISC transfer takes place between a charge-transfer $S_1$ state and a localized $T_1$ state. As such, the network map allows to investigate the validity of El Sayed's rule for a given molecule. Singlet to triplet ISC transfers are shown from left to right, whereas triplet to singlet transfers are shown right to left. More than one transfer can be mapped at the same time from the window in the left. To analyse more than one transfer at the same time, click on the corresponding state while holding the "ctrl" key. 
 
 Below the plot, one table is displayed for each transfer selected. The tables show the top 10 conformations as measured by the size of their contributions to the total rate. This can be used to determine which conformations of the ensemble are more relevant for the ISC transfers. 
 

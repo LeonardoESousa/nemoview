@@ -1,3 +1,4 @@
 include README.md LICENSE
-include kmcdash/*.ipynb
-include kmcdash/*mplstyle
+include nemoview/*.ipynb
+include nemoview/*mplstyle
+include nemoview/figs/*.png
