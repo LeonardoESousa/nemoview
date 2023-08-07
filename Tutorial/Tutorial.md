@@ -19,6 +19,7 @@ From a terminal, use the command:
 The application will open in your browser. 
 
 # Uploading Ensemble Files
+<img src="Naming.png" alt="Alt Text" width="2000">
 
 Click on the **Upload** button. Select the ensemble files you want to analyze. You may select several ensemble files for different states and/or different molecules to be analyzed simultaneously. Examples of ensemble files can be found [here](https://github.com/LeonardoESousa/nemoview/tree/main/Tutorial).
 
@@ -30,6 +31,11 @@ Once the ensemble files are loaded, a widget appears where one is able to change
 After the files are read, a four tabs will appear, each correponding to a kind of analysis:  **Diagram**, **Spectra**, **Susceptibility** and **Network**.
 
 ## Diagram
+<figure>
+  <img src="Diagram.png" alt="Levels diagram" width="2000">
+  <figcaption>Example of levels diagram generated simultaneously for two molecules.</figcaption>
+</figure>
+
 
 The **Diagram** tab shows the energy levels diagram automatically built from the ensemble data. Curved arrows denote non-radiative transfers (ISC) whereas straight arrows denote radiative transfers (fluorescence and phosphorescence). Arrow thickness is proportional to the quantum yield of each transition as calculated by NEMO. Singlet states and transition from singlet states are shown in blue. Yellow is used for triplet states and transitions that start from them. If ensembles for more than one molecule are present, results for each molecule are presented sida by side for direct comparison. 
 
@@ -68,7 +74,12 @@ Some options are available to change the presentation of results in this tab.
  - Download: Here you can obtain a high resolution transparent png file of the diagram. The figure will be saved in the same folder from which nemoview was initialized. 
 
 
-## Spectra 
+## Spectra
+<figure>
+  <img src="Spectra.png" alt="Alt Text" width="2000">
+  <figcaption>Example of absorption and emission spectra for two molecules. Tables below show spectral peaks, radiative lifetimes and Förster radii.</figcaption>
+</figure> 
+
 
 Here, molecular spectra are presented. The kind of spectrum depends on the ensemble state. For S0 ensembles, only absorption spcetrum is available. For excited state ensembles, emission (fluorescence for singlets and phosphorescence for triplets) and absorption spectra are available. You may select which spectra to display from the window in the left. To show more than on spectrum at the same time, click on the corresponding spectrum while holding the "ctrl" key. All spectra are normalized before plotting.
 
@@ -103,6 +114,10 @@ Some options are available to change the presentation of results in this tab.
  - Download: Here you can obtain a high resolution transparent png file of the spectra. The figure will be saved in the same folder from which nemoview was initialized. 
 
 ### Susceptibility
+<figure>
+  <img src="Susceptibility.png" alt="Alt Text" width="2000">
+  <figcaption>Susceptibility plots show how sensitive different excited states are with respect to changes in solvent polarity. It also serves as a proxy for the degree of charge transfer character of a state.</figcaption>
+</figure> 
 
 Solvent susceptibility is defined as the ratio between the nonequilibrium state-specific solvent correction $\lambda^{neq}$ and $\alpha_{opt} = (n_r^2-1)/(n_r^2+1)$. It corresponds to the maximum solvent correction that state can suffer, meaning the energy correction due to a solvent in the limit of $n_r \to \infty$. The higher the susceptibility of a state, the higher the sensitivity of that excited state with respect to changes in solvent polarity. As such it correlates with the degree of charge-transfer character of the state. 
 
@@ -125,6 +140,10 @@ Some options are available to change the presentation of results in this tab.
  - Download: Here you can obtain a high resolution transparent png file of the susceptibility plots. The figure will be saved in the same folder from which nemoview was initialized. 
 
 ### Network
+<figure>
+  <img src="Network.png" alt="Alt Text" width="2000">
+  <figcaption>Network plots show the mapping between the susceptibility of initial and final states in ISC processes. Mappings from low to high susceptibility (and vice versa) indicate transitions between states of different electronic character.</figcaption>
+</figure>
 
 The network tab shows a mapping between the solvent susceptibilities of each conformation in the ensemble from the initial state to the final state for ISC transfers. For example, take the S1~>T1 transfer. Each conformation in the ensemble contributes with the total rate with a certain amount and each conformation has a certain S1 and T1 energies. The network map connects the solvent susceptibility of the S1 state of each conformation with the corresponding solvent susceptibility of the T1 state. Line opaqueness is proportional to the contribtution of each conformation to the total rate.  In this sense, curves that go from high to low susceptibility indicate that the ISC transfer takes place between a charge-transfer S1 state and a localized T1 state. As such, the network map allows to investigate the validity of El Sayed's rule for a given molecule. Singlet to triplet ISC transfers are shown from left to right, whereas triplet to singlet transfers are shown right to left. More than one transfer can be mapped at the same time from the window in the left. To analyse more than one transfer at the same time, click on the corresponding state while holding the "ctrl" key. 
 
