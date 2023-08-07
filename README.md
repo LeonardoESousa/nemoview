@@ -7,7 +7,7 @@
 [![commit](https://img.shields.io/github/last-commit/LeonardoESousa/nemoview?style=plastic)]()
 [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/LeonardoESousa/nemoview/HEAD?urlpath=voila%2Frender%2Fnemoview%2Fnemodash.ipynb)
 
-<img src="Tutorial/Diagram.png" alt="Alt Text" width="2000">
+<img src="Tutorial/nemo.png" alt="Alt Text" width="2000">
 
 ## How to install it?
 
