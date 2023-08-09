@@ -4,7 +4,11 @@ In the following, we will learn how to use Nemoview package to visualize results
 
 # How to Install It?
 
-To run nemoview locally in your computer, run:
+The simples way is to run:
+
+`pip install nemoview`
+
+To intall the latest commit, run:
 
 `pip install git+https://github.com/LeonardoESousa/nemoview`
 

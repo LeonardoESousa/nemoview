@@ -11,9 +11,15 @@
 
 ## How to install it?
 
-To run nemoview locally in your computer, run:
+The simples way is to run:
+
+`pip install nemoview`
+
+To intall the latest commit, run:
 
 `pip install git+https://github.com/LeonardoESousa/nemoview`
+
+It is recommended that you intall nemoview within a virtual enviroment. 
 
 ## How to use it?
 
