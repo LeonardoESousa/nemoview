@@ -4,7 +4,7 @@ In the following, we will learn how to use Nemoview package to visualize results
 
 # How to Install It?
 
-The simples way is to run:
+The simplest way is to run:
 
 `pip install nemoview`
 

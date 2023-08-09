@@ -11,7 +11,7 @@
 
 ## How to install it?
 
-The simples way is to run:
+The simplest way is to run:
 
 `pip install nemoview`
 
