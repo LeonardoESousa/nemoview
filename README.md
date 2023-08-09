@@ -15,7 +15,7 @@ The simplest way is to run:
 
 `pip install nemoview`
 
-To intall the latest commit, run:
+To install the latest commit, run:
 
 `pip install git+https://github.com/LeonardoESousa/nemoview`
 
