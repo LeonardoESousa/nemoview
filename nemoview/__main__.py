@@ -9,9 +9,11 @@ def main():
         f.write(working_dir+'\n')
     try:
         option = r'--Voila.tornado_settings={}'.format('''{'websocket_max_message_size': 209715200}''')
+        option += ''' --VoilaConfiguration.file_whitelist="['figs/favicon.ico']"'''
         subprocess.check_output(['voila',path,option])
     except subprocess.CalledProcessError as e:
         option =  " --Voila.tornado_settings \"'websocket_max_message_size'=209715200\""
+        option += ''' --VoilaConfiguration.file_whitelist="['figs/favicon.ico']"'''
         command = "voila "+path+option
         subprocess.run(command, shell=True)     
 

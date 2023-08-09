@@ -2,3 +2,4 @@ include README.md LICENSE
 include nemoview/*.ipynb
 include nemoview/*mplstyle
 include nemoview/figs/*.png
+include nemoview/figs/*.ico
