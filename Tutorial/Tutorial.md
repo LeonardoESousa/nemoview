@@ -12,7 +12,7 @@ To intall the latest commit, run:
 
 `pip install git+https://github.com/LeonardoESousa/nemoview`
 
-It is recommended that you intall nemoview within a virtual enviroment. 
+It is recommended that you install nemoview within a virtual enviroment. 
 
 # How to Run It?
 
