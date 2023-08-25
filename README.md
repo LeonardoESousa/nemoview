@@ -8,19 +8,21 @@
 [![commit](https://img.shields.io/github/last-commit/LeonardoESousa/nemoview?style=plastic)]()
 [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/LeonardoESousa/nemoview/HEAD?urlpath=voila%2Frender%2Fnemoview%2Fnemodash.ipynb)
 
-<img src="Tutorial/nemoview_front.png" alt="Alt Text" width="2000">
+<img src="Tutorial/Figures/nemoview_front.png" alt="Alt Text" width="2000">
 
 ## How to install it?
 
-The simplest way is to run:
+The easiest way to install is to use pip:
 
 `pip install nemoview`
 
-To install the latest commit, run:
+This will install the latest released version.
+
+To install the version with the latest commit, run:
 
 `pip install git+https://github.com/LeonardoESousa/nemoview`
 
-It is recommended that you install nemoview within a virtual enviroment. 
+**NOTE**: It is recommended that you install **NEMOview** within a virtual enviroment.
 
 ## How to use it?
 
@@ -32,4 +34,4 @@ The application will open in your browser.
 
 ## Tutorial
 
-For details on the analyses available in Nemoview, check the [tutorial](https://github.com/LeonardoESousa/nemoview/tree/main/Tutorial/Tutorial.md).
+For details on the analyses available in **NEMOview**, check the [tutorial](https://github.com/LeonardoESousa/nemoview/tree/main/Tutorial/Tutorial.md).

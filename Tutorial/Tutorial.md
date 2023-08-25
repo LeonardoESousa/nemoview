@@ -1,18 +1,33 @@
+# **NEMOview** Tutorial
+
+<img src="Figures/nemoview_front.png" alt="Alt Text" width="2000">
+
+# Table of Contents
+
+- [Introduction](#introduction)
+- [How to Install It?](#how-to-install-it)
+- [How to Run It?](#how-to-run-it)
+- [Uploading Ensemble Files](#uploading-ensemble-files)
+- [Analysis](#analysis)
+
+
 # Introduction
 
-In the following, we will learn how to use Nemoview package to visualize results of NEMO ensemble calculations.
+**NEMOview** is an application for the visualization and analysis of ensembles produced with [**NEMO**](https://github.com/LeonardoESousa/nemo). It generates absorption and emission spectra; computes emission and ISC rates; produces levels diagrams; provides insight into the contents of each ensemble. All of these featrues are interactive, so users may modify, for instance, solvent properties and see in real time how it affects the photophysics of their molecules of interest.
 
 # How to Install It?
 
-The simplest way is to run:
+The easiest way to install is to use pip:
 
 `pip install nemoview`
 
-To install the latest commit, run:
+This will install the latest released version.
+
+To install the version with the latest commit, run:
 
 `pip install git+https://github.com/LeonardoESousa/nemoview`
 
-It is recommended that you install nemoview within a virtual enviroment. 
+**NOTE**: It is recommended that you install **NEMOview** within a virtual enviroment. 
 
 # How to Run It?
 
@@ -23,20 +38,20 @@ From a terminal, use the command:
 The application will open in your browser. 
 
 # Uploading Ensemble Files
-<img src="Naming.png" alt="Alt Text" width="2000">
+<img src="Figures/Naming.png" alt="Alt Text" width="2000">
 
 Click on the **Upload** button. Select the ensemble files you want to analyze. You may select several ensemble files for different states and/or different molecules to be analyzed simultaneously. Examples of ensemble files can be found [here](https://github.com/LeonardoESousa/nemoview/tree/main/Tutorial).
 
-Once the ensemble files are loaded, a widget appears where one is able to change the ensemble file names. Ensembles obtained from a same molecule in different states ($S_0$, $S_1$, $T_1$ etc) should have the same name. This will help nemoview bundle together the information for each molecule. For example, if you uploaded six ensembles -- $S_0$, $S_1$ and $T_1$ ensembles for molecule A and $S_0$, $S_1$ and $T_1$ ensembles for molecule B --, use the text boxes and write A in the fields corresponding to ensembles coming from molecule A and B in the fields corresponding to ensembles coming from molecule B. Any name will do, as long as it is different for each molecule. Once this is done, go ahead and click on **Read file**.
+Once the ensemble files are loaded, a widget appears where one is able to change the ensemble file names. Ensembles obtained from a same molecule in different states ($S_0$, $S_1$, $T_1$ etc) should have the same name. This will help nemoview bundle together the information for each molecule. For example, if you uploaded six ensembles -- $S_0$, $S_1$ and $T_1$ ensembles for molecule **A** and $S_0$, $S_1$ and $T_1$ ensembles for molecule **B** --, use the text boxes and write "A" in the fields corresponding to ensembles coming from molecule **A** and "B" in the fields corresponding to ensembles coming from molecule **B**. Any name will do, as long as it is different for each molecule. Once this is done, go ahead and click on **Read file**.
 
 
 # Analysis
 
-After the files are read, a four tabs will appear, each correponding to a kind of analysis:  **Diagram**, **Spectra**, **Susceptibility** and **Network**.
+After the files are read, four tabs will appear, each correponding to a kind of analysis:  **Diagram**, **Spectra**, **Susceptibility** and **Network**.
 
 ## Diagram
 <figure>
-  <img src="Diagram.png" alt="Levels diagram" width="2000">
+  <img src="Figures/Diagram.png" alt="Levels diagram" width="2000">
   <figcaption>Example of levels diagram generated simultaneously for two molecules.</figcaption>
 </figure>
 
@@ -80,7 +95,7 @@ Some options are available to change the presentation of results in this tab.
 
 ## Spectra
 <figure>
-  <img src="Spectra.png" alt="Spectrum plots" width="2000">
+  <img src="Figures/Spectra.png" alt="Spectrum plots" width="2000">
   <figcaption>Example of absorption and emission spectra for two molecules. Tables below show spectral peaks, radiative lifetimes and Förster radii.</figcaption>
 </figure> 
 
@@ -119,7 +134,7 @@ Some options are available to change the presentation of results in this tab.
 
 ### Susceptibility
 <figure>
-  <img src="Susceptibility.png" alt="Susceptibility plots" width="2000">
+  <img src="Figures/Susceptibility.png" alt="Susceptibility plots" width="2000">
   <figcaption>Susceptibility plots show how sensitive different excited states are with respect to changes in solvent polarity. It also serves as a proxy for the degree of charge transfer character of a state.</figcaption>
 </figure> 
 
@@ -145,7 +160,7 @@ Some options are available to change the presentation of results in this tab.
 
 ### Network
 <figure>
-  <img src="Network.png" alt="Network maps" width="2000">
+  <img src="Figures/Network.png" alt="Network maps" width="2000">
   <figcaption>Network plots show the mapping between the susceptibility of initial and final states in ISC processes. Mappings from low to high susceptibility (and vice versa) indicate transitions between states of different electronic character.</figcaption>
 </figure>
 
