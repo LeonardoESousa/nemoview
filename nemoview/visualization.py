@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 import ipywidgets as widgets
 from scipy.interpolate import interp1d
-
+# pylint: disable=unbalanced-tuple-unpacking
 
 THECOLOR = "black"
 cmap = plt.get_cmap("cividis")
@@ -29,7 +29,7 @@ def check(ax, xmin, xmax):
             xs = list(sorted(vert[:, 0]))
             if xs == x and 0 not in vert[:, 1]:
                 y = vert[1, 1]
-        except:
+        except (IndexError, AttributeError):
             pass
     return y
 
@@ -52,7 +52,7 @@ def fill(ax, xmin, xmax, y, text):
             color=THECOLOR,
             fontsize=fontsize,
         )
-    except:
+    except TypeError :
         ax.text(
             x=xmin + (xmax - xmin) / 2,
             y=0.95 * y,
@@ -64,21 +64,21 @@ def fill(ax, xmin, xmax, y, text):
         )
 
 
-def format_rate(r, dr):
+def format_rate(rate, error_rate):
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
-        exp = int(np.nan_to_num(np.log10(r)))
+        exp = int(np.nan_to_num(np.log10(rate)))
     if exp < -100:
         exp = -100
     if exp != 0:
-        s = f"${r/10**exp:.1f}\pm{dr/10**exp:.1f}\\times10^{{{exp}}}$ $s^{{-1}}$"
+        formatted_string = f"${rate/10**exp:.1f}\\pm{error_rate/10**exp:.1f}\\times10^{{{exp}}}$ $s^{{-1}}$"
     else:
-        s = f"${r/10**exp:.1f}\pm{dr/10**exp:.1f}$ $s^{{-1}}$"
-    return s
+        formatted_string = f"${rate/10**exp:.1f}\\pm{error_rate/10**exp:.1f}$ $s^{{-1}}$"
+    return formatted_string
 
 
 class State:
-    def __init__(self, alvos):
+    def __init__(self):
         self.smin, self.smax = 0, 3.3
         self.tmin, self.tmax = 3.7, 7
         #singlets = [i for i in alvos if "S" in i and "0" not in i]
@@ -102,16 +102,16 @@ class State:
             xmin = self.tmin + (num - 1) * (1 + factor) * self.size
             return xmin, xmin + self.size
 
-    def arrow(self, state, alvo, delta):
+    def arrow(self, state, alvo):
         if "T" in state and "T" in alvo:
-            xi, xf, factor = self.x(state)[1], self.x(alvo)[0] + 3 * self.size / 4, 1
+            x_i, x_f, factor = self.x(state)[1], self.x(alvo)[0] + 3 * self.size / 4, 1
         elif "T" in state and "S" in alvo:
-            xi, xf, factor = self.x(state)[1], self.x(alvo)[0] + 3 * self.size / 4, 1
+            x_i, x_f, factor = self.x(state)[1], self.x(alvo)[0] + 3 * self.size / 4, 1
         elif "S" in state and "T" in alvo:
-            xi, xf, factor = self.x(state)[1], self.x(alvo)[0] + self.size / 4, -1
+            x_i, x_f, factor = self.x(state)[1], self.x(alvo)[0] + self.size / 4, -1
         else:
-            xi, xf, factor = self.x(state)[0], self.x(alvo)[0], 1
-        return xi, xf, factor
+            x_i, x_f, factor = self.x(state)[0], self.x(alvo)[0], 1
+        return x_i, x_f, factor
 
 
 def relu(x):
@@ -121,20 +121,20 @@ def relu(x):
 def plot_transitions(data, ax, cutoff):
     fontsize = set_fontsize(ax)
     lw = fontsize / 2
-    rates = data["Rate"].values
-    error = data["Error"].values
-    transitions = data["Transition"].values
-    weights = data["Prob"].values
+    rates = data["Rate"].to_numpy()
+    error = data["Error"].to_numpy()
+    transitions = data["Transition"].to_numpy()
+    weights = data["Prob"].to_numpy()
     weights /= np.sum(weights)
     weights = np.round(weights, 4)
-    energies = data["AvgDE+L"].values
+    energies = data["AvgDE+L"].to_numpy()
     energies[1:] += energies[0]
     base = energies[0]
     state = transitions[0].split(">")[0][:-1]
     num = int(state[1:])
     alvos = [i.split(">")[1] for i in transitions]
     trans = [i.split(">")[0][-1] for i in transitions]
-    S = State(alvos)
+    S = State()
     ##Makes S0 lines
     xmin, xmax = S.x(state)
     fill(ax, xmin, xmax, base, f"{state[0]}$_{num}$")
@@ -150,7 +150,7 @@ def plot_transitions(data, ax, cutoff):
         fontsize=fontsize,
     )
     ##
-    for i in range(len(energies)):
+    for i, _ in enumerate(energies):
         style = f"Fancy, tail_width={lw}, head_width={lw*3}, head_length={lw*2}"
         kw = dict(
             arrowstyle=style,
@@ -183,12 +183,12 @@ def plot_transitions(data, ax, cutoff):
                 ax.add_patch(a3)
             else:
                 xmin, xmax = S.x(alvos[i])
-                newy = check(ax, xmin, xmax)
+                _ = check(ax, xmin, xmax)
                 fill(ax, xmin, xmax, energies[i], f"{alvos[i][0]}$_{alvos[i][1:]}$")
                 ax.hlines(
                     y=energies[i], xmin=xmin, xmax=xmax, lw=lw, color=S.color(state)
                 )
-                fx, tx, curve = S.arrow(state, alvos[i], energies[i] - base)
+                fx, tx, curve = S.arrow(state, alvos[i])
                 a3 = patches.FancyArrowPatch(
                     (fx, base),
                     (tx, energies[i]),
@@ -208,9 +208,9 @@ def write_energies(ax):
     for elem in ax.get_children():
         try:
             vert = elem.get_paths()[0].vertices
-            xmin = min(xmin, min(vert[:, 0]))
-            xmax = max(xmax, max(vert[:, 0]))
-        except:
+            xmin = min(xmin, vert[:, 0])
+            xmax = max(xmax, vert[:, 0])
+        except IndexError:
             pass
     for elem in ax.get_children():
         try:
@@ -228,7 +228,7 @@ def write_energies(ax):
                 and y != 0
             ):
                 yright.append(y)
-        except:
+        except IndexError:
             pass
     dleft, dright = [100], [100]
     for y in sorted(yleft):
@@ -259,11 +259,11 @@ def write_energies(ax):
 
 
 def make_diagram(files, dielec, cutoff=0.01):
-    fig, ax = plt.subplots()
+    _, ax = plt.subplots()
     ax.set_xticklabels([])
     plt.axis("off")
     for file in files:
-        data, emi = nemo.analysis.rates(file.split("_")[1], dielec, data=file)
+        data, _ = nemo.analysis.rates(file.split("_")[1], dielec, data=file)
         data.rename(columns=lambda x: x.split("(")[0], inplace=True)
         plot_transitions(data, ax, cutoff)
     # medium = plt.legend(handles=[],title=f'Medium:\n$\epsilon ={dielec[0]}$\n$n={dielec[1]}$',title_fontsize=10, loc='best',frameon=False)
@@ -339,7 +339,7 @@ def eps_nr(eps0=1, nr0=1):
         min=1,
         max=100.0,
         step=0.1,
-        description="$\epsilon$",
+        description="$\\epsilon$",
         tooltip="Dielectric constant",
         disabled=False,
     )
@@ -367,7 +367,7 @@ def network_spectrum(breakdown, ax, initial, process, wave):
     x2min, x2max = ax2.get_xlim()
     func = vertical_tanh
     x = np.linspace(-1, 1.5, 100)
-    cmap = plt.get_cmap("coolwarm")
+    color_map = plt.get_cmap("coolwarm")
     # make list of colors from 0 to 1
     if process == "emi":
         transition = initial + "->S0"
@@ -396,7 +396,7 @@ def network_spectrum(breakdown, ax, initial, process, wave):
     for i in range(breakdown.shape[0]):
         if width[i] > 0.01:
             y = func(x, d_initial[i], d_final[i])
-            ax2.plot(y, x, lw=2, alpha=width[i], color=cmap(d_initial[i] / x2max))
+            ax2.plot(y, x, lw=2, alpha=width[i], color=color_map(d_initial[i] / x2max))
 
 
 # define function that equals a for x=-5 and b for x=5 using tanh
@@ -512,11 +512,11 @@ def radius(acceptor, donor, kappa2):
     delta = np.sqrt((DeltaOver / IntOver) ** 2 + (delta_tau / tau) ** 2)
 
     # Calculates radius
-    radius = radius6 ** (1 / 6)
+    forster_radius = radius6 ** (1 / 6)
 
     # Error in radius
-    delta_radius = radius * delta / 6
-    return radius, delta_radius
+    error_forster_radius = forster_radius * delta / 6
+    return forster_radius, error_forster_radius
 
 
 ###############################################################
