@@ -208,9 +208,9 @@ def write_energies(ax):
     for elem in ax.get_children():
         try:
             vert = elem.get_paths()[0].vertices
-            xmin = min(xmin, vert[:, 0])
-            xmax = max(xmax, vert[:, 0])
-        except IndexError:
+            xmin = min(xmin, min(vert[:, 0]))
+            xmax = max(xmax, max(vert[:, 0]))
+        except AttributeError:
             pass
     for elem in ax.get_children():
         try:
@@ -228,7 +228,7 @@ def write_energies(ax):
                 and y != 0
             ):
                 yright.append(y)
-        except IndexError:
+        except AttributeError:
             pass
     dleft, dright = [100], [100]
     for y in sorted(yleft):
