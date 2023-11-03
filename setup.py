@@ -17,8 +17,7 @@ DESCRIPTION = 'Visualization tool for NEMO ensembles'
 URL = 'https://github.com/LeonardoESousa/nemoview'
 EMAIL = 'leonardo.sousa137@gmail.com'
 AUTHOR = 'Leonardo Evaristo de Sousa'
-REQUIRES_PYTHON = '>=3.6.0'
-VERSION = '0.1.0'
+REQUIRES_PYTHON = '>=3.8.0'
 
 # What packages are required for this module to be executed?
 REQUIRED = ['matplotlib==3.5.1', 'voila==0.4.0', 'ipywidgets==8.0.6', 'pandas==1.5.2', 'IPython','Ipympl==0.9.3', 'jinja2==3.0.0','nemophoto==1.0.0']
@@ -46,12 +45,9 @@ except FileNotFoundError:
 
 # Load the package's __version__.py module as a dictionary.
 about = {}
-if not VERSION:
-    project_slug = 'nemoview'
-    with open(os.path.join(here, project_slug, '__version__.py')) as f:
-        exec(f.read(), about)
-else:
-    about['__version__'] = VERSION
+project_slug = 'nemoview'
+with open(os.path.join(here, project_slug, '__version__.py'),encoding='utf-8') as f:
+    exec(f.read(), about)
 
 
 class UploadCommand(Command):
