@@ -5,7 +5,6 @@ import nemo.analysis
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
-import ipywidgets as widgets
 from scipy.interpolate import interp1d
 # pylint: disable=unbalanced-tuple-unpacking
 
@@ -332,29 +331,13 @@ def get_peak(hist, bins):
     peak = bins[ind]
     return peak
 
-
-def eps_nr(eps0=1, nr0=1):
-    eps = widgets.BoundedFloatText(
-        value=eps0,
-        min=1,
-        max=100.0,
-        step=0.1,
-        description="$\\epsilon$",
-        tooltip="Dielectric constant",
-        disabled=False,
-    )
-
-    nr = widgets.BoundedFloatText(
-        value=nr0,
-        step=0.1,
-        min=1,
-        max=10.0,
-        description="$n_r$",
-        tooltip="Refractive index",
-        disabled=False,
-    )
-    return eps, nr
-
+def relevant(x,y,err, miny):
+    # get indices where y >= 0.03
+    idx = np.where(y >= miny/100)
+    x = x[idx]
+    err = err[idx]
+    y = y[idx]
+    return x,y,err
 
 def vertical_tanh(x, a, b):
     return (a - b) / 2 * np.tanh(3 * (x - 1)) + (a + b) / 2
@@ -444,8 +427,8 @@ def plot_network(breakdown, ax, side, transition):
 def calc_lifetime(xd, yd, dyd):
     # Integrates the emission spectrum
     IntEmi = np.trapz(yd, xd)
-    taxa = (1 / nemo.tools.hbar) * IntEmi
-    error = (1 / nemo.tools.hbar) * np.sqrt(np.trapz((dyd**2), xd))
+    taxa = (1 / nemo.parser.HBAR_EV) * IntEmi
+    error = (1 / nemo.parser.HBAR_EV) * np.sqrt(np.trapz((dyd**2), xd))
     dlife = (1 / taxa) * (error / taxa)
     return 1 / taxa, dlife
 
@@ -505,7 +488,7 @@ def radius(acceptor, donor, kappa2):
 
     # Calculates radius sixth power
     c *= 1e10
-    const = (nemo.tools.hbar**3) * (9 * (c**4) * kappa2 * tau) / (8 * np.pi)
+    const = (nemo.parser.HBAR_EV**3) * (9 * (c**4) * kappa2 * tau) / (8 * np.pi)
     radius6 = const * IntOver
 
     # Relative error in radius6
