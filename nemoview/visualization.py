@@ -337,7 +337,7 @@ def relevant(x,y,err, miny):
     x = x[idx]
     err = err[idx]
     y = y[idx]
-    return x,y,err
+    return x,y,err,idx[0]
 
 def vertical_tanh(x, a, b):
     return (a - b) / 2 * np.tanh(3 * (x - 1)) + (a + b) / 2
