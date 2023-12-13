@@ -157,9 +157,7 @@ def plot_transitions(data, ax, cutoff):
             zorder=10,
             mutation_scale=relu(weights[i]),
         )
-        if np.round(weights[i], 2) > cutoff or (
-            alvos[i] == "S0" and np.round(weights[i], 2) > 0
-        ):
+        if np.round(weights[i], 2) > cutoff or alvos[i] == "S0":
             if alvos[i] == "S0":
                 xmin, xmax = S.x(state)
                 if trans[i] == "-":
