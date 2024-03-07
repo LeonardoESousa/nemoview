@@ -3,7 +3,7 @@
 
 [![made-with-python](https://img.shields.io/badge/Made%20with-Python-1f425f.svg?style=plastic)](https://www.python.org/)
 [![license](https://img.shields.io/github/license/LeonardoESousa/nemoview?style=plastic)]()
-[![maint](https://img.shields.io/maintenance/yes/2023?style=plastic)]()
+[![maint](https://img.shields.io/maintenance/yes/2024?style=plastic)]()
 [![down](https://img.shields.io/pypi/dm/nemoview?style=plastic)]()
 [![commit](https://img.shields.io/github/last-commit/LeonardoESousa/nemoview?style=plastic)]()
 [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/LeonardoESousa/nemoview/HEAD?urlpath=voila%2Frender%2Fnemoview%2Fnemodash.ipynb)
