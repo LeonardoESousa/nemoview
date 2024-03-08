@@ -6,6 +6,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 from scipy.interpolate import interp1d
+from scipy.linalg import expm
 # pylint: disable=unbalanced-tuple-unpacking
 
 THECOLOR = "black"
@@ -123,9 +124,9 @@ def plot_transitions(data, ax, cutoff):
     rates = data["Rate"].to_numpy()
     error = data["Error"].to_numpy()
     transitions = data["Transition"].to_numpy()
-    weights = data["Prob"].to_numpy()
-    weights /= np.sum(weights)
-    weights = np.round(weights, 4)
+    weights = data["Prob"].to_numpy()/100
+    #weights /= np.sum(weights)
+    #weights = np.round(weights, 4)
     energies = data["AvgDE+L"].to_numpy()
     energies[1:] += energies[0]
     base = energies[0]
@@ -155,9 +156,9 @@ def plot_transitions(data, ax, cutoff):
             arrowstyle=style,
             color=S.color(state),
             zorder=10,
-            mutation_scale=relu(weights[i]),
+            mutation_scale=weights[i],#relu(weights[i]),
         )
-        if np.round(weights[i], 2) > cutoff or alvos[i] == "S0":
+        if np.round(weights[i], 2) > cutoff:
             if alvos[i] == "S0":
                 xmin, xmax = S.x(state)
                 if trans[i] == "-":
@@ -501,3 +502,52 @@ def radius(acceptor, donor, kappa2):
 
 
 ###############################################################
+
+def kinetics(total_rates, s1):
+    # filter transition that contain S1~> 
+    isc = total_rates[total_rates['Transition'].str.contains('S1~>')].copy()
+    # sum all rates
+    kisc = isc['Rate'].sum()
+    risc = total_rates[(total_rates['Transition'].str.contains('T1~>')) & (~total_rates['Transition'].str.contains('~>S0'))].copy()
+    # remove those with ~>S0
+    krisc = risc['Rate'].sum()
+    try:
+        kf = total_rates[total_rates['Transition'].str.contains('S1->S0')]['Rate'].values[0]
+    except IndexError:
+        kf = 0
+    try:
+        kp = total_rates[total_rates['Transition'].str.contains('T1->S0')]['Rate'].values[0]
+    except IndexError:
+        kp = 0
+    try:
+        knr = total_rates[total_rates['Transition'].str.contains('T1~>S0')]['Rate'].values[0]
+    except IndexError:
+        knr = 0
+
+    # Diferential equation: dP/dt = M*P
+    M = np.zeros((5,5))
+    M[0,0] = -(kf + kisc)
+    M[0,1] = krisc
+    M[1,0] = kisc
+    M[1,1] = -(krisc+kp+knr)
+    M[2,0] = kf
+    M[3,1] = kp
+    M[4,1] = knr
+
+    # P = [S1, T1, S0f, S0p, S0nr]
+    P = np.zeros((M.shape[0],1))
+    P[0,0] = s1 # Initial population in S1
+    P[1,0] = 100 - s1 # Initial population in T1
+    R = P
+    x = [0] # Initial time
+    deltat = 1/max([kisc,krisc,kf,kp,knr]) # Time step (s)
+    print('DeltaT    S1    T1     S0')
+    while np.sum(P[2:,0]) < 99: # Until 90% of population is in S0
+        P = np.matmul(expm(M*deltat),P)
+        R = np.hstack((R,P))
+        x.append(x[-1]+deltat)
+        deltat = max(0.01*(x[-1]+deltat),deltat)
+        # To check progress
+        print(f'{deltat:.2e} {P[0,0]:.2f}% {P[1,0]:.2f}% {P[2,0]:.2f}%',end="\r", flush=True)
+    x = np.array(x)
+    return x, R
