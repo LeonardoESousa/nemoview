@@ -137,6 +137,23 @@ def cutoff(kw):
     kw['cutoff'] = cut
     return cut, kw
 
+def initial_pop(kw):
+    cut = widgets.FloatSlider(
+    value=100,
+        min=0,
+        max=100,
+        step=5,
+        description='$S_1(t=0)$:',
+        disabled=False,
+        tooltip='Initial population of S1',
+        continuous_update=True,
+        orientation='horizontal',
+        readout=True,
+        readout_format='.0f',
+    )
+    kw['initialpop'] = cut
+    return cut, kw
+
 def legend(kw):
     lege = widgets.Checkbox(
     value=False,

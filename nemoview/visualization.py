@@ -534,20 +534,23 @@ def kinetics(total_rates, s1):
     M[3,1] = kp
     M[4,1] = knr
 
-    # P = [S1, T1, S0f, S0p, S0nr]
-    P = np.zeros((M.shape[0],1))
-    P[0,0] = s1 # Initial population in S1
-    P[1,0] = 100 - s1 # Initial population in T1
-    R = P
-    x = [0] # Initial time
-    deltat = 1/max([kisc,krisc,kf,kp,knr]) # Time step (s)
-    print('DeltaT    S1    T1     S0')
-    while np.sum(P[2:,0]) < 99: # Until 90% of population is in S0
-        P = np.matmul(expm(M*deltat),P)
-        R = np.hstack((R,P))
-        x.append(x[-1]+deltat)
-        deltat = max(0.01*(x[-1]+deltat),deltat)
+    # dpop = [S1, T1, S0f, S0p, S0nr]
+    dpop = np.zeros((M.shape[0],1))
+    dpop[0,0] = s1 # Initial population in S1
+    dpop[1,0] = 100 - s1 # Initial population in T1
+    pop = dpop
+    time = [0] # Initial time
+    deltat = 1e-2/max([kisc,krisc,kf,kp,knr]) # Time step (s)
+    min_rate = min([i for i in [kf,kp,knr] if i > 0])
+    max_time = 1#1e2/(min_rate)
+    #print('DeltaT    S1    T1     S0')
+    while np.sum(dpop[2:,0]) < 99 and time[-1] < max_time:
+        dpop = np.matmul(expm(M*deltat),dpop)
+        pop = np.hstack((pop,dpop))
+        time.append(time[-1]+deltat)
+        deltat = max(0.01*(time[-1]+deltat),deltat)
         # To check progress
-        print(f'{deltat:.2e} {P[0,0]:.2f}% {P[1,0]:.2f}% {P[2,0]:.2f}%',end="\r", flush=True)
-    x = np.array(x)
-    return x, R
+        print(f'Computing... {np.sum(dpop[2:,0]):.1f}%',end="\r", flush=True)
+        #print(f'Computing...{deltat:.2e} {dpop[0,0]:.2f}% {dpop[1,0]:.2f}% {dpop[2,0]:.2f}%',end="\r", flush=True)
+    time = np.array(time)
+    return time, pop
