@@ -490,37 +490,34 @@ def radius(acceptor, donor, kappa2):
 
 
 ###############################################################
-
 def kinetics(total_rates, s1):
-    # filter transition that contain S1~> 
-    isc = total_rates[total_rates['Transition'].str.contains('S1~>')].copy()
+    isc = total_rates[total_rates['Transition'].str.contains('S1~>')].to_numpy()
     # sum all rates
-    kisc = isc['Rate'].sum()
-    risc = total_rates[(total_rates['Transition'].str.contains('T1~>')) & (~total_rates['Transition'].str.contains('~>S0'))].copy()
-    # remove those with ~>S0
-    krisc = risc['Rate'].sum()
+    kisc = np.sum(isc[:,1])
+    risc = total_rates[(total_rates['Transition'].str.contains('T1~>')) & (~total_rates['Transition'].str.contains('~>S0'))].to_numpy()
+    krisc = np.sum(risc[:,1])
     try:
-        kf = total_rates[total_rates['Transition'].str.contains('S1->S0')]['Rate'].values[0]
+        kf = total_rates['Rate'][total_rates.Transition == 'S1->S0'].to_numpy()[0] #total_rates[total_rates['Transition'].str.contains('S1->S0')]['Rate'].values[0]
     except IndexError:
         kf = 0
     try:
-        kp = total_rates[total_rates['Transition'].str.contains('T1->S0')]['Rate'].values[0]
+        kp = total_rates['Rate'][total_rates.Transition == 'T1->S0'].to_numpy()[0]
     except IndexError:
         kp = 0
     try:
-        knr = total_rates[total_rates['Transition'].str.contains('T1~>S0')]['Rate'].values[0]
+        knr = total_rates['Rate'][total_rates.Transition == 'T1~>S0'].to_numpy()[0]
     except IndexError:
         knr = 0
 
+
     # Diferential equation: dP/dt = M*P
-    M = np.zeros((5,5))
-    M[0,0] = -(kf + kisc)
-    M[0,1] = krisc
-    M[1,0] = kisc
-    M[1,1] = -(krisc+kp+knr)
-    M[2,0] = kf
-    M[3,1] = kp
-    M[4,1] = knr
+    M = np.array([
+        [-(kf + kisc), krisc, 0, 0, 0],
+        [kisc, -(krisc + kp + knr), 0, 0, 0],
+        [kf, 0, 0, 0, 0],
+        [0, kp, 0, 0, 0],
+        [0, knr, 0, 0, 0]
+    ])
 
     # dpop = [S1, T1, S0f, S0p, S0nr]
     dpop = np.zeros((M.shape[0],1))
@@ -528,7 +525,7 @@ def kinetics(total_rates, s1):
     dpop[1,0] = 100 - s1 # Initial population in T1
     pop = dpop
     time = [0] # Initial time
-    deltat = 1e-2/max([kisc,krisc,kf,kp,knr]) # Time step (s)
+    deltat = 1e-1/max([kisc,krisc,kf,kp,knr]) # Time step (s)
     min_rate = min([i for i in [kf,kp,knr] if i > 0])
     max_time = 1#1e2/(min_rate)
     #print('DeltaT    S1    T1     S0')
@@ -538,7 +535,6 @@ def kinetics(total_rates, s1):
         time.append(time[-1]+deltat)
         deltat = max(0.01*(time[-1]+deltat),deltat)
         # To check progress
-        print(f'Computing... {np.sum(dpop[2:,0]):.1f}%',end="\r", flush=True)
-        #print(f'Computing...{deltat:.2e} {dpop[0,0]:.2f}% {dpop[1,0]:.2f}% {dpop[2,0]:.2f}%',end="\r", flush=True)
+        #print(f'Computing... {np.sum(dpop[2:,0]):.1f}%',end="\r", flush=True)
     time = np.array(time)
     return time, pop
