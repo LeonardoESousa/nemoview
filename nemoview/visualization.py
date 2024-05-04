@@ -421,20 +421,6 @@ def plot_network(breakdown, ax, side, transition):
     # hist, bins = np.histogram(width,bins=100)
     # ax22.plot((bins[1:]+bins[:-1])/2,hist/np.sum(hist),color=color)
 
-
-##CALCULATES FLUORESCENCE LIFETIME IN S########################
-def calc_lifetime(xd, yd, dyd):
-    # Integrates the emission spectrum
-    IntEmi = np.trapz(yd, xd)
-    taxa = (1 / nemo.parser.HBAR_EV) * IntEmi
-    error = (1 / nemo.parser.HBAR_EV) * np.sqrt(np.trapz((dyd**2), xd))
-    dlife = (1 / taxa) * (error / taxa)
-    return 1 / taxa, dlife
-
-
-###############################################################
-
-
 ##CALCULATES FORSTER RADIUS####################################
 def radius(acceptor, donor, kappa2):
     acceptor = acceptor.to_numpy()
@@ -442,9 +428,9 @@ def radius(acceptor, donor, kappa2):
     ya = acceptor[:, -2]
     dya = acceptor[:, -1]
 
-    xd = donor["Energy"].values
-    yd = donor["Diffrate"].values
-    dyd = donor["Error"].values
+    xd = donor["Energy"].to_numpy()
+    yd = donor["Diffrate"].to_numpy()
+    dyd = donor["Error"].to_numpy()
 
     # Speed of light
     c = 299792458  # m/s
@@ -483,8 +469,10 @@ def radius(acceptor, donor, kappa2):
     DeltaOver = np.sqrt(np.trapz((OverError**2), X))
 
     # Gets lifetime
-    tau, delta_tau = calc_lifetime(xd, yd, dyd)
-
+    emi_rate, emi_error = donor.rate, donor.error
+    tau = 1 / emi_rate
+    delta_tau = (1/emi_rate)*(emi_error/emi_rate)
+    
     # Calculates radius sixth power
     c *= 1e10
     const = (nemo.parser.HBAR_EV**3) * (9 * (c**4) * kappa2 * tau) / (8 * np.pi)
