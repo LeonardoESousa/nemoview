@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 from scipy.interpolate import interp1d
 from scipy.linalg import expm
+import pandas as pd
 # pylint: disable=unbalanced-tuple-unpacking
 
 THECOLOR = "black"
@@ -294,15 +295,6 @@ def naming(arquivo, folder="."):
 ###############################################################
 
 
-def trpl(times, bin_num=10):
-    num = int((max(times) - min(times)) / bin_num)
-    hist, bins = np.histogram(
-        times, bins=np.linspace(min(times), max(times), num), density=True
-    )
-    bins = bins[:-1] + (bins[1:] - bins[:-1]) / 2
-    return hist, bins
-
-
 def spectrum(dx, gran):
     num = int((max(dx) - min(dx)) / gran)
     if num == 0:
@@ -497,7 +489,7 @@ def kinetics(total_rates, s1):
     risc = total_rates[(total_rates['Transition'].str.contains('T1~>')) & (~total_rates['Transition'].str.contains('~>S0'))].to_numpy()
     krisc = np.sum(risc[:,1])
     try:
-        kf = total_rates['Rate'][total_rates.Transition == 'S1->S0'].to_numpy()[0] #total_rates[total_rates['Transition'].str.contains('S1->S0')]['Rate'].values[0]
+        kf = total_rates['Rate'][total_rates.Transition == 'S1->S0'].to_numpy()[0]
     except IndexError:
         kf = 0
     try:
@@ -538,3 +530,22 @@ def kinetics(total_rates, s1):
         #print(f'Computing... {np.sum(dpop[2:,0]):.1f}%',end="\r", flush=True)
     time = np.array(time)
     return time, pop
+
+
+def compile(dielec, datas,ensemble_average=False):
+    for data in datas:
+        rates = data.rate(dielec, ensemble_average=ensemble_average)
+        try:
+            total_rates = pd.concat([total_rates, rates], axis=0, ignore_index=True)
+        except NameError:
+            total_rates = rates
+    total_rates.rename(columns=lambda x: x.split('(')[0], inplace=True)        
+    return total_rates
+
+def trpl(time, pop):
+    emission = pop[2,:] + pop[3,:]
+    #compute derivative of emission
+    emission_derivative = np.diff(emission)/np.diff(time)
+    y_data = max(emission)*emission_derivative/max(emission_derivative)
+    x_data = time[:-1] + (time[1:] - time[:-1])/2
+    return x_data, y_data
