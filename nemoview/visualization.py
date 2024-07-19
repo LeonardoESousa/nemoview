@@ -65,16 +65,16 @@ def fill(ax, xmin, xmax, y, text):
         )
 
 
-def format_rate(rate, error_rate):
+def format_rate(rate, error_rate, unit="$s^{-1}$"):
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
-        exp = int(np.nan_to_num(np.log10(rate)))
+        exp = np.round((np.nan_to_num(np.log10(rate))),0)
     if exp < -100:
         exp = -100
     if exp != 0:
-        formatted_string = f"${rate/10**exp:.1f}\\pm{error_rate/10**exp:.1f}\\times10^{{{exp}}}$ $s^{{-1}}$"
+        formatted_string = f"${rate/10**exp:.1f}\\pm{error_rate/10**exp:.1f}\\times10^{{{exp:.0f}}}$ "+unit
     else:
-        formatted_string = f"${rate/10**exp:.1f}\\pm{error_rate/10**exp:.1f}$ $s^{{-1}}$"
+        formatted_string = f"${rate/10**exp:.1f}\\pm{error_rate/10**exp:.1f}$ "+unit
     return formatted_string
 
 
@@ -317,10 +317,30 @@ def drift(data):
     return np.array([mux, muy, muz])
 
 
-def get_peak(hist, bins):
-    ind = np.where(hist == max(hist))[0][0]
-    peak = bins[ind]
-    return peak
+#def get_peak(hist, bins):
+#    ind = np.where(hist == max(hist))[0][0]
+#    peak = bins[ind]
+#    return peak
+
+def get_peak(y, x, err):
+    if err is None:
+        max_idx = y.argmax()
+        peak = x[max_idx]
+        return peak, np.nan, np.nan
+    else:
+        # fix seed
+        np.random.seed(0)
+        #sample from gaussian with mean y and std err
+        yy = np.random.normal(y, err, size=(1000, len(y)))
+        #find x value of maxima
+        maxima_x = x[np.argmax(yy, axis=1)]
+        peak = np.mean(maxima_x)
+        err_p = np.std(maxima_x)
+        min_p = 1239.8/(peak+err_p)
+        mean_p = 1239.8/(peak)
+        max_p = 1239.8/(peak-err_p)
+        wave = f'{mean_p:.0f} [{min_p:.0f},{max_p:.0f}]'
+        return f'{peak:.2f} +/- {err_p:.2f}', wave
 
 def relevant(x,y,err, miny):
     # get indices where y >= 0.03

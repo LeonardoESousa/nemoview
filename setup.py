@@ -20,7 +20,7 @@ AUTHOR = 'Leonardo Evaristo de Sousa'
 REQUIRES_PYTHON = '>=3.8.0'
 
 # What packages are required for this module to be executed?
-REQUIRED = ['matplotlib==3.5.1', 'voila==0.4.0', 'ipywidgets==8.0.6', 'pandas==1.5.2', 'IPython','Ipympl==0.9.3', 'jinja2==3.0.0','nemophoto==1.2.0']
+REQUIRED = ['matplotlib==3.9.0', 'voila==0.5.7', 'ipywidgets==8.1.3', 'pandas==1.5.3', 'IPython','Ipympl', 'jinja2','nemophoto==1.2.0', 'ipykernel==6.29.5', 'numpy==1.26.4']
 
 # What packages are optional?
 EXTRAS = {
