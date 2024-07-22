@@ -122,17 +122,17 @@ def ensemble(kw):
 
 def cutoff(kw):
     cut = widgets.FloatSlider(
-    value=0.1,
+    value=10,
         min=0,
-        max=1,
-        step=0.05,
-        description='Cutoff:',
+        max=100,
+        step=5,
+        description='Cutoff (%):',
         disabled=False,
-        tooltip='Cutoff yield for displaying rates (0-1)',
+        tooltip='Cutoff yield for displaying rates (0-100)',
         continuous_update=True,
         orientation='horizontal',
         readout=True,
-        readout_format='.2f',
+        readout_format='.0f',
     )
     kw['cutoff'] = cut
     return cut, kw

@@ -64,18 +64,66 @@ def fill(ax, xmin, xmax, y, text):
             fontsize=fontsize,
         )
 
+def format_number(rate, error_rate, unit="s^-1"):
+    # Check if the rate is zero
+    if rate <= 1e-99:
+        return f"0 ± 0 {unit}"
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        exp = np.floor(np.nan_to_num(np.log10(rate)))
+
+    # Adjust exponent to ensure the first number is >= 1
+    if rate / 10**exp < 1:
+        exp -= 1
+
+    # Determine the number of significant figures for rate and error_rate
+    rate_sig_figs = max(0, -int(np.floor(np.log10(error_rate / 10**exp))))  # Ensure at least 1 significant figure
+    error_rate_sig_figs = max(0, -int(np.floor(np.log10(error_rate / 10**exp))))  # Ensure at least 1 significant figure
+
+    # Format the string without using LaTeX
+    if exp != 0:
+        formatted_rate = f"{rate/10**exp:.{rate_sig_figs}f}"
+        formatted_error_rate = f"{error_rate/10**exp:.{error_rate_sig_figs}f}"
+        formatted_string = f"({formatted_rate} ± {formatted_error_rate}) x 10^{int(exp)} {unit}"
+    else:
+        formatted_rate = f"{rate:.{rate_sig_figs}f}"
+        formatted_error_rate = f"{error_rate:.{error_rate_sig_figs}f}"
+        formatted_string = f"{formatted_rate} ± {formatted_error_rate} {unit}"
+
+    return formatted_string
 
 def format_rate(rate, error_rate, unit="$s^{-1}$"):
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
-        exp = np.round((np.nan_to_num(np.log10(rate))),0)
-    if exp < -100:
-        exp = -100
+        exp = np.floor(np.nan_to_num(np.log10(rate)))
+
+    # Adjust exponent to ensure the first number is >= 1
+    if rate / 10**exp < 1:
+        exp -= 1
+
+    # Determine the number of significant figures for rate and error_rate
+    rate_sig_figs = max(0, -int(np.floor(np.log10(error_rate / 10**exp))))  # Ensure at least 1 significant figure
+    error_rate_sig_figs = max(0, -int(np.floor(np.log10(error_rate / 10**exp))))  # Ensure at least 1 significant figure
+
     if exp != 0:
-        formatted_string = f"${rate/10**exp:.1f}\\pm{error_rate/10**exp:.1f}\\times10^{{{exp:.0f}}}$ "+unit
+        formatted_string = f"${rate/10**exp:.{rate_sig_figs}f}\\pm{error_rate/10**exp:.{error_rate_sig_figs}f}\\times10^{{{exp:.0f}}}$ " + unit
     else:
-        formatted_string = f"${rate/10**exp:.1f}\\pm{error_rate/10**exp:.1f}$ "+unit
+        formatted_string = f"${rate:.{rate_sig_figs}f}\\pm{error_rate:.{error_rate_sig_figs}f}$ " + unit
+
     return formatted_string
+
+#def format_rate(rate, error_rate, unit="$s^{-1}$"):
+#    with warnings.catch_warnings():
+#        warnings.simplefilter("ignore")
+#        exp = np.round((np.nan_to_num(np.log10(rate))),0)
+#    if exp < -100:
+#        exp = -100
+#    if exp != 0:
+#        formatted_string = f"${rate/10**exp:.1f}\\pm{error_rate/10**exp:.1f}\\times10^{{{exp:.0f}}}$ "+unit
+#    else:
+#        formatted_string = f"${rate/10**exp:.1f}\\pm{error_rate/10**exp:.1f}$ "+unit
+#    return formatted_string
 
 
 class State:
@@ -120,6 +168,7 @@ def relu(x):
 
 
 def plot_transitions(data, ax, cutoff):
+    cutoff = cutoff / 100
     fontsize = set_fontsize(ax)
     lw = fontsize / 2
     rates = data["Rate"].to_numpy()
@@ -167,7 +216,7 @@ def plot_transitions(data, ax, cutoff):
                         (xmin, base),
                         (xmin, 0),
                         **kw,
-                        label=f"{state[0]}$_{state[1]}\\: \\to \\:${alvos[i][0]}$_{alvos[i][1:]}$: "
+                        label=f"{state[0]}$_{state[1]}\\:\\to\\:${alvos[i][0]}$_{alvos[i][1:]}$: "
                         + format_rate(rates[i], error[i]),
                     )
                 else:
@@ -317,16 +366,11 @@ def drift(data):
     return np.array([mux, muy, muz])
 
 
-#def get_peak(hist, bins):
-#    ind = np.where(hist == max(hist))[0][0]
-#    peak = bins[ind]
-#    return peak
-
 def get_peak(y, x, err):
     if err is None:
         max_idx = y.argmax()
         peak = x[max_idx]
-        return peak, np.nan, np.nan
+        return f'{peak:.2f}', f'{1239.8/peak:.0f}'
     else:
         # fix seed
         np.random.seed(0)
@@ -339,8 +383,7 @@ def get_peak(y, x, err):
         min_p = 1239.8/(peak+err_p)
         mean_p = 1239.8/(peak)
         max_p = 1239.8/(peak-err_p)
-        wave = f'{mean_p:.0f} [{min_p:.0f},{max_p:.0f}]'
-        return f'{peak:.2f} +/- {err_p:.2f}', wave
+        return f'{peak:.2f} ± {err_p:.2f}', f'{mean_p:.0f} [{min_p:.0f},{max_p:.0f}]'
 
 def relevant(x,y,err, miny):
     # get indices where y >= 0.03
