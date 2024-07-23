@@ -8,6 +8,7 @@ import matplotlib.patches as patches
 from scipy.interpolate import interp1d
 from scipy.linalg import expm
 import pandas as pd
+from IPython.display import display
 # pylint: disable=unbalanced-tuple-unpacking
 
 THECOLOR = "black"
@@ -543,48 +544,83 @@ def radius(acceptor, donor, kappa2):
     error_forster_radius = forster_radius * delta / 6
     return forster_radius, error_forster_radius
 
+def make_matrix(df2):
+    trans = df2['Transition'].to_list()
+    initials = [i.split('>')[0][:-1] for i in trans]
+    finals = [i for i in trans if 'S0' in i]
+    initials = list(set(initials))
+    labels = initials + finals
+    df = df2.copy()
+    #keep only Transition and Rate columns
+    df = df[['Transition','Rate']]
+    final = []
+    initial = []
+    # Iterate over the dataframe
+    for i in range(0, len(df)):
+        transition = df.at[i, 'Transition']
+        target_state = transition.split('>')[-1]  # Get the target state
+        initial_state = transition.split('>')[0][:-1]
+        if target_state not in labels and transition not in labels:
+            # Add the rate to the preceding row
+            df.at[ifin, 'Rate'] += df.at[i, 'Rate']
+            # Mark the current row for removal
+            df.at[i, 'Remove'] = True
+        elif target_state in labels:
+            ifin = i
+            final.append(target_state)
+            initial.append(initial_state)
+        else:
+            ifin = i
+            final.append(transition)    
+            initial.append(initial_state)
+    
+    # Remove the marked rows
+    df = df[df['Remove'] != True].drop(columns=['Remove'])
+    df['Initial'] = initial
+    df['Final'] = final
 
-###############################################################
-def kinetics(total_rates, s1):
-    isc = total_rates[total_rates['Transition'].str.contains('S1~>')].to_numpy()
-    # sum all rates
-    kisc = np.sum(isc[:,1])
-    risc = total_rates[(total_rates['Transition'].str.contains('T1~>')) & (~total_rates['Transition'].str.contains('~>S0'))].to_numpy()
-    krisc = np.sum(risc[:,1])
-    try:
-        kf = total_rates['Rate'][total_rates.Transition == 'S1->S0'].to_numpy()[0]
-    except IndexError:
-        kf = 0
-    try:
-        kp = total_rates['Rate'][total_rates.Transition == 'T1->S0'].to_numpy()[0]
-    except IndexError:
-        kp = 0
-    try:
-        knr = total_rates['Rate'][total_rates.Transition == 'T1~>S0'].to_numpy()[0]
-    except IndexError:
-        knr = 0
+    M = np.zeros((len(labels),len(labels)))
+    for ini in labels:
+        for fin in labels:
+            try:
+                rate = df['Rate'][(df.Initial == ini) & (df.Final == fin)].to_numpy()[0]
+                if 'S0' in fin and 'S0' not in ini:
+                    fin2 = fin.split('>')[0][:-1]
+                else:
+                    fin2 = fin
+                if ini == fin2:
+                    M[labels.index(ini),labels.index(fin2)] += -rate
+                    M[labels.index(fin),labels.index(ini)] += rate
+                else:
+                    #print(ini, fin2, rate)
+                    M[labels.index(ini),labels.index(ini)] += -rate
+                    M[labels.index(fin),labels.index(ini)] += rate          
+            except IndexError:
+                pass
+    M = pd.DataFrame(M)
+    M.columns = labels
+    M.index = labels
+    #format as .2e
+    M = M.applymap(lambda x: f'{x:.2e}')
+    return M
 
-
-    # Diferential equation: dP/dt = M*P
-    M = np.array([
-        [-(kf + kisc), krisc, 0, 0, 0],
-        [kisc, -(krisc + kp + knr), 0, 0, 0],
-        [kf, 0, 0, 0, 0],
-        [0, kp, 0, 0, 0],
-        [0, knr, 0, 0, 0]
-    ])
-
-    # dpop = [S1, T1, S0f, S0p, S0nr]
+def kinetics(total_rates, initial):
+    M = make_matrix(total_rates)
+    # get index of initial state
+    states = M.columns.to_list()
+    #count elements that contain 'S0'
+    num = sum('S0' not in i for i in states)
+    rows = M.index.to_list()
+    #take numbers from M without column and row names
+    M = M.to_numpy(float)
     dpop = np.zeros((M.shape[0],1))
-    dpop[0,0] = s1 # Initial population in S1
-    dpop[1,0] = 100 - s1 # Initial population in T1
+    dpop[states.index(initial),0] = 100 # Initial population
     pop = dpop
     time = [0] # Initial time
-    deltat = 1e-1/max([kisc,krisc,kf,kp,knr]) # Time step (s)
-    min_rate = min([i for i in [kf,kp,knr] if i > 0])
-    max_time = 1#1e2/(min_rate)
+    deltat = 1e-1/np.max(np.abs(M)) # Time step (s)
+    max_time = 1
     #print('DeltaT    S1    T1     S0')
-    while np.sum(dpop[2:,0]) < 99 and time[-1] < max_time:
+    while  np.sum(dpop[num:,0]) < 99.0 and time[-1] < max_time:
         dpop = np.matmul(expm(M*deltat),dpop)
         pop = np.hstack((pop,dpop))
         time.append(time[-1]+deltat)
@@ -592,8 +628,12 @@ def kinetics(total_rates, s1):
         # To check progress
         #print(f'Computing... {np.sum(dpop[2:,0]):.1f}%',end="\r", flush=True)
     time = np.array(time)
+    #make dataframe with time and populations
+    pop = pd.DataFrame(pop)
+    pop.index = rows
     return time, pop
 
+###############################################################
 
 def compile(dielec, datas,ensemble_average=False):
     for data in datas:
@@ -606,7 +646,8 @@ def compile(dielec, datas,ensemble_average=False):
     return total_rates
 
 def trpl(time, pop):
-    emission = pop[2,:] + pop[3,:]
+    states = [i for i in pop.index.to_list() if '->S0' in i]
+    emission = pop.loc[states].sum().to_numpy()
     #compute derivative of emission
     emission_derivative = np.diff(emission)/np.diff(time)
     y_data = max(emission)*emission_derivative/max(emission_derivative)
