@@ -62,11 +62,9 @@ Below the diagram you will find a set of tables, one for each excited state ense
 
  - Transition: The kinds of transitions NEMO was able to compute. These are labeled by the initial state, an arrow indicating the kind of transition and final state. Radiative transitions are denoted by "->" whereas nonradiative transitions are denoted by "~>". 
 
- - Rate: The rate associated for each transition in $s^{-1}$.
+ - Rate: The rate associated for each transition along with the associated uncertainty due to sampling error in $s^{-1}$.
 
- - Error: The uncertainty due to sampling error associated to each rate estimate in $s^{-1}$.  
-
- - Prob: The probability for each transition in %. This probability is calculated by computing the ratio between the rate and the sum of all rates computed from that same initial state.
+ - Yield: The yield of each transition in %. The yield for transitions that do not involve the ground state is calculated by computing the ratio between the ISC rate and the sum of all rates computed from that same initial state. Yields for transitions to the ground state are computed by running a kinetic model and taking the ratio of each deactivation pathway. Yields of transitions to the ground state add up to 100%.
 
  - &lt;Gap&gt;: The average energy gap for each transition in eV.
 
@@ -75,6 +73,13 @@ Below the diagram you will find a set of tables, one for each excited state ense
  - $<\sigma>$: The average standard deviation in eV of the gaussian functions in the nuclear ensemble-derived expressions for rates. 
 
  - &lt;Conc&gt;: The average fraction in % of conformations in the ensemble who are actively contributing to the total calculated rate.
+
+Below the tables, you will find plots for the time-resolved population and photoluminescence diagrams generated using the rates seen in the tables above. The log(Time) slider can be used to adjust the limits of the x-axis.
+
+<figure>
+  <img src="Figures/Kinetics.png" alt="Kinetics diagram" width="2000">
+  <figcaption>Example of time-resolved population and photoluminescence diagram generated simultaneously for two molecules.</figcaption>
+</figure>
 
 ### Options
 
@@ -90,7 +95,9 @@ Some options are available to change the presentation of results in this tab.
 
  - Display rate: Checking this box makes makes the numerical values of each rate visible in the diagram.
 
- - Download: Here you can obtain a high resolution transparent png file of the diagram. The figure will be saved in the same folder from which nemoview was initialized. 
+ - Initial State: Select which excited state will be considered to be excited at the initial time. This information is used in the kinetic model that produces time-resolved spectra and computes yields for deactivation processes. For example, if you select the S1 state, calculations will consider that the photophysics start with a 100% population in the S1 state. Selecting different states may result in different time-resolved spectra and yields. 
+
+ - Download: Here you can obtain a high resolution transparent png file of the figures. The figures will be saved in the same folder from which nemoview was initialized. 
 
 
 ## Spectra
@@ -104,7 +111,7 @@ Here, molecular spectra are presented. The kind of spectrum depends on the ensem
 
 Below the spectrum plots, three tables are shown:
 
-1. Spectral Peaks: Displays the position of the spectral peaks in eV and nm of all spectra being plotted.
+1. Spectral Peaks: Displays the position of the spectral peaks along with their corresponding uncertainties in eV and nm of all spectra being plotted. It also presents the average susceptibility of each state.
 
 2. Radiative Lifetimes: Displays the radiative lifetime in s of the selected excited states along with the corresponding uncertainty.
 
@@ -120,13 +127,15 @@ Some options are available to change the presentation of results in this tab.
 
  - \# of states: Number of states to be included in the absorption spectra. Usually absorption spectra include transitions to several final states. Here you may choose how many to account for in the plotting of the spectrum. A value of -1 signals that all available states should be used. 
 
- - Decompose Absorption: Checking this box will show, along with the total absorption spectrum, the individual spectra corresponding to each transition that make the total absorption spectrum. If checked, the Spectral Peaks tabvle will also display the peak position of each of these individual spectra.
+ - Min. Y(%): Minimum intensities to be plotted. Adjusting this number prevents excessively long ranges in the x-axis of the plot, especially when using Wavelength.
+
+ - Decompose Absorption: Checking this box will show, along with the total absorption spectrum, the individual spectra corresponding to each transition that make the total absorption spectrum. If checked, the Spectral Peaks table will also display the peak position of each of these individual spectra.
 
  - $\kappa^2$: The orientation factor used to compute Förster radii. A default value of 0.66 is used corresponding to the value for isotropic distribution of molecules. This factor may vary from 0 to 4.
 
  - Network: Displays a mapping between the solvent susceptibility of each conformation that makes an ensemble and their emission or absorption energy. The opaqueness of the lines is proportional to the contribution of that conformation to the total spectrum. If checked, besides the mapping, a table with the 5 conformations that contribute the most to the spectra is shown. Higher susceptibilities are associated with warmer colors. More details on solvent susceptibility can be found on the next section. 
 
- - Max. Susc.: Maximum susceptibility in eV considered for coloring the network map. This is used to adjust the colormap of susceptibilities.
+ - Max. Susc.: Maximum susceptibility in eV considered for coloring the network map. This is used to adjust the colormap of susceptibilities. Only useful when Network is selected.
 
  - Wavelength (nm): Changes the x axis of the spectrum plots from eV to nm.
 
@@ -138,11 +147,13 @@ Some options are available to change the presentation of results in this tab.
   <figcaption>Susceptibility plots show how sensitive different excited states are with respect to changes in solvent polarity. It also serves as a proxy for the degree of charge transfer character of a state.</figcaption>
 </figure> 
 
-Solvent susceptibility is defined as the ratio between the nonequilibrium state-specific solvent correction $\lambda^{neq}$ and $\alpha_{opt} = (n_r^2-1)/(n_r^2+1)$. It corresponds to the maximum solvent correction that state can suffer, meaning the energy correction due to a solvent in the limit of $n_r \to \infty$. The higher the susceptibility of a state, the higher the sensitivity of that excited state with respect to changes in solvent polarity. As such it correlates with the degree of charge-transfer character of the state. 
+The solvent susceptibility of state $i$ ($\chi_i$) is defined as $\chi_i = \lambda^{neq}_i/\alpha$, where  $\lambda^{neq}_i$ is the nonequilibrium state-specific solvent correction to the state $i$ and $\alpha_{opt} = (n_r^2-1)/(n_r^2+1)$, $n_r$ being the refractive index used to compute the solvent correction. It corresponds to the maximum solvent correction that state can suffer, meaning the energy correction due to a solvent in the limit of $n_r \to \infty$. The higher the susceptibility of a state, the higher the sensitivity of that excited state with respect to changes in solvent polarity. As such it correlates with the degree of charge-transfer character of the state. 
 
 In this tab, two plots are shown. The first one shows the distribution of susceptibilites for each selected state of each ensemble. The second one displays the same data in the form of a heatmap, indicating the composition of each ensemble in terms of solvent susceptibility. 
 
 The states to be displayed can be selected from the window in the left. To analyse more than one state at the same time, click on the corresponding state while holding the "ctrl" key.
+
+Below the plot a table with 5 conformations with highest susceptibility below the maximum value chosen by the user. This information can be used, for instance, to select geometries from the ensemble from which to obtain NTOs, showcasing the different electronic characters found in the ensemble.   
 
 ### Options
 
@@ -154,7 +165,7 @@ Some options are available to change the presentation of results in this tab.
 
  - Bin 10^x (eV): Selects the bin size to be used on the plot with the distribution of sucsceptibilites. Depending on the characteristics of the ensemble, different values may produce better visualization. 
 
- - Max. Susc.: Maximum susceptibility in eV considered for coloring the ensemble coposition plot. This is used to adjust the colormap of susceptibilities.
+ - Max. Susc.: Maximum susceptibility in eV considered for coloring the ensemble coposition plot. This is used to adjust the colormap of susceptibilities. The table below the plot will show molecular geometries with highest susceptibility but lower than the maximum value selected. 
 
  - Download: Here you can obtain a high resolution transparent png file of the susceptibility plots. The figure will be saved in the same folder from which nemoview was initialized. 
 
