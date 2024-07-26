@@ -600,12 +600,16 @@ def make_matrix(df2):
     M = pd.DataFrame(M)
     M.columns = labels
     M.index = labels
-    #format as .2e
-    M = M.applymap(lambda x: f'{x:.2e}')
-    return M
+    return M, df
 
-def kinetics(total_rates, initial):
-    M = make_matrix(total_rates)
+def kinetics(total_rates, initial, debug=False):
+    M, df = make_matrix(total_rates)
+    if debug:
+        #format as .2e
+        M = M.applymap(lambda x: f'{x:.2e}')
+        df['Rate'] = df['Rate'].apply(lambda x: f'{x:.2e}')
+        display(df)
+        display(M)
     # get index of initial state
     states = M.columns.to_list()
     #count elements that contain 'S0'
@@ -618,10 +622,9 @@ def kinetics(total_rates, initial):
     pop = dpop
     time = [0] # Initial time
     deltat = 1e-1/np.max(np.abs(M)) # Time step (s)
-    max_time = 1
-    #print('DeltaT    S1    T1     S0')
-    while  np.sum(dpop[num:,0]) < 99.0 and time[-1] < max_time:
+    while  np.sum(dpop[num:,0]) < 99.0:
         dpop = np.matmul(expm(M*deltat),dpop)
+        dpop = (dpop / np.sum(dpop)) * 100
         pop = np.hstack((pop,dpop))
         time.append(time[-1]+deltat)
         deltat = max(0.01*(time[-1]+deltat),deltat)
@@ -631,6 +634,7 @@ def kinetics(total_rates, initial):
     #make dataframe with time and populations
     pop = pd.DataFrame(pop)
     pop.index = rows
+    pop.columns = time
     return time, pop
 
 ###############################################################
