@@ -8,7 +8,19 @@
 [![commit](https://img.shields.io/github/last-commit/LeonardoESousa/nemoview?style=plastic)]()
 [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/LeonardoESousa/nemoview/HEAD?urlpath=voila%2Frender%2Fnemoview%2Fnemodash.ipynb)
 
+## An application for analysis and visualization of results from NEMO ensemble calculations. 
+
+
 <img src="Tutorial/Figures/nemoview_front.png" alt="Alt Text" width="2000">
+
+
+## Quick Guide
+
+1 - Try running it using  binder: [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/LeonardoESousa/nemoview/HEAD?urlpath=voila%2Frender%2Fnemoview%2Fnemodash.ipynb)
+
+2 - Read the [tutorial](https://github.com/LeonardoESousa/nemoview/tree/main/Tutorial/Tutorial.md) while the application loads. 
+
+3 - Examples of ensemble files for testing can be found [here](https://github.com/LeonardoESousa/nemoview/tree/main/Tutorial).
 
 ## How to install it?
 
