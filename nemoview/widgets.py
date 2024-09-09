@@ -1,4 +1,7 @@
+import requests
+import pkg_resources
 import ipywidgets as widgets
+
 
 def eps_nr(kw,eps0=1, nr0=1):
     eps = widgets.BoundedFloatText(
@@ -163,3 +166,24 @@ def gran_slider(kw):
     )
     kw['gran'] = slider
     return slider, kw
+
+def check_for_updates(package_name):
+    try:
+        # Get the currently installed version
+        installed_version = pkg_resources.get_distribution(package_name).version
+        
+        # Fetch the latest version from PyPI
+        response = requests.get(f'https://pypi.org/pypi/{package_name}/json')
+        response.raise_for_status()
+        latest_version = response.json()['info']['version']
+
+        # Compare versions
+        if installed_version != latest_version:
+            text = f"ATTENTION: Update available! {package_name} {installed_version} -> {latest_version}\n"
+            text += f"Run `pip install --upgrade {package_name}` to update."
+            n2 = widgets.HTML(value = f'<b>{text}<b>')
+            return n2
+        else:
+            return None
+    except Exception as e:
+        print(f"An error occurred while checking for updates: {e}")
