@@ -127,7 +127,7 @@ Some options are available to change the presentation of results in this tab.
 
  - \# of states: Number of states to be included in the absorption spectra. Usually absorption spectra include transitions to several final states. Here you may choose how many to account for in the plotting of the spectrum. A value of -1 signals that all available states should be used. 
 
- - Min. Y(%): Minimum intensities to be plotted. Adjusting this number prevents excessively long ranges in the x-axis of the plot, especially when using Wavelength.
+ - Max. X: Right limit of the X values in the spectrum plot.
 
  - Decompose Absorption: Checking this box will show, along with the total absorption spectrum, the individual spectra corresponding to each transition that make the total absorption spectrum. If checked, the Spectral Peaks table will also display the peak position of each of these individual spectra.
 

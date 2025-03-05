@@ -99,18 +99,18 @@ def nstates(kw):
     kw['nstates'] = n_states
     return n_states, kw
 
-def miny(kw):
-    min_y = widgets.BoundedFloatText(
-    value=1,
+def maxx(kw):
+    maxx = widgets.BoundedFloatText(
+    value=0,
     min=0,
-    max=99,
-    step=1,
-    description='Min. Y (%):',
-    tooltip='Minimum intensity for plotting (%)',
+    max=10000,
+    step=0.1,
+    description='Max. X:',
+    tooltip='Right limit of plot',
     disabled=False
     )
-    kw['miny'] = min_y
-    return min_y, kw
+    kw['maxx'] = maxx
+    return maxx, kw
 
 def ensemble(kw):
     ens = widgets.Checkbox(
