@@ -386,14 +386,6 @@ def get_peak(y, x, err):
         max_p = 1239.8/(peak-err_p)
         return f'{peak:.2f} ± {err_p:.2f}', f'{mean_p:.0f} [{min_p:.0f},{max_p:.0f}]'
 
-def relevant(x,y,err, miny):
-    # get indices where y >= 0.03
-    idx = np.where(y >= miny/100)
-    x = x[idx]
-    err = err[idx]
-    y = y[idx]
-    return x,y,err,idx[0]
-
 def vertical_tanh(x, a, b):
     return (a - b) / 2 * np.tanh(3 * (x - 1)) + (a + b) / 2
 
