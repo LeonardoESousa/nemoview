@@ -649,3 +649,148 @@ def trpl(time, pop):
     y_data = max(emission)*emission_derivative/max(emission_derivative)
     x_data = time[:-1] + (time[1:] - time[:-1])/2
     return x_data, y_data
+
+
+import matplotlib.pyplot as plt
+import matplotlib.patches as patches
+import colour
+from colour import (
+    SpectralDistribution,
+    SDS_ILLUMINANTS,
+    sd_to_XYZ,
+    XYZ_to_sRGB
+)
+import numpy as np
+
+class FluorescentVialPlotter:
+    def __init__(self, ax, vial_width=0.08, vial_height=0.25, spacing=0.04):
+        """
+        Parameters:
+            ax (matplotlib.axes.Axes): Axes to draw the vials near.
+            vial_width (float): Width of each vial in Axes-relative coordinates.
+            vial_height (float): Height of each vial in Axes-relative coordinates.
+            spacing (float): Horizontal space between vials.
+        """
+        self.ax = ax
+        self.vial_width = vial_width
+        self.vial_height = vial_height
+        self.spacing = spacing
+        self.vials = []
+        self.vial_artists = []
+
+    def spectrum_to_color(self, x_eV, y_emission):
+        h = 4.135667696e-15
+        c = 2.99792458e8
+        wavelengths_nm = (h * c / np.array(x_eV)) * 1e9
+        intensities = np.array(y_emission)
+
+        sort_idx = np.argsort(wavelengths_nm)
+        wavelengths_nm = wavelengths_nm[sort_idx]
+        intensities = intensities[sort_idx]
+
+        mask = (wavelengths_nm >= 380) & (wavelengths_nm <= 780)
+        wavelengths_nm = wavelengths_nm[mask]
+        intensities = intensities[mask]
+
+        if len(wavelengths_nm) == 0:
+            return (127, 127, 127)
+
+        intensities /= np.max(intensities)
+        spectrum_dict = dict(zip(wavelengths_nm, intensities))
+        sd = SpectralDistribution(spectrum_dict, name="Emission Spectrum")
+        XYZ = sd_to_XYZ(sd, illuminant=SDS_ILLUMINANTS["D65"], method="integration")
+        RGB = XYZ_to_sRGB(XYZ)
+        RGB = np.clip(RGB, 0, 1)
+        return tuple((RGB * 255).astype(int))
+
+    def add_vial(self, x_eV, y_emission, label=None):
+        rgb = self.spectrum_to_color(x_eV, y_emission)
+        self.vials.append((rgb, label))
+
+    def render(self):
+        # save the current data limits
+        orig_xlim = self.ax.get_xlim()
+        orig_ylim = self.ax.get_ylim()
+
+        # disable autoscale just for the vignette
+        self.ax.set_autoscale_on(False)
+
+        base_x = 1.08
+        base_y = 0.1
+        for i, (rgb, label) in enumerate(self.vials):
+            x0 = base_x + i * (self.vial_width + self.spacing)
+            self._draw_vial(x0, base_y, rgb, label)
+
+        # restore the original data limits
+        self.ax.set_xlim(orig_xlim)
+        self.ax.set_ylim(orig_ylim)
+
+        #re‐enable autoscale for future data additions
+        self.ax.set_autoscale_on(True)
+
+
+    def _draw_vial(self, x0, y0, rgb_triplet, label=None):
+        ax = self.ax
+        transform = ax.transAxes
+        fr_w, fr_h = self.vial_width, self.vial_height
+
+        liq_off_x, liq_off_y = 0.025 * fr_w, 0.02 * fr_h
+        liq_w, liq_h = 0.52 * fr_w, 0.84 * fr_h
+        round_liq = 0.08 * min(fr_w, fr_h)
+
+        vial_w, vial_h = 0.60 * fr_w, 1.10 * fr_h
+        round_vial = 0.10 * min(fr_w, fr_h)
+        cap_h = 0.20 * fr_h
+
+        srgb = tuple(v / 255 for v in rgb_triplet)
+        artists = []
+        # Liquid
+        liquid = patches.FancyBboxPatch(
+            (x0 + liq_off_x, y0 + liq_off_y), liq_w, liq_h,
+            boxstyle=f"round,pad=0.01,rounding_size={round_liq}",
+            linewidth=0, facecolor=srgb, alpha=1,
+            transform=transform, clip_on=False
+        )
+        ax.add_patch(liquid); artists.append(liquid)
+
+        # Vial outline
+        vial_outline = patches.FancyBboxPatch(
+            (x0, y0), vial_w, vial_h,
+            boxstyle=f"round,pad=0.02,rounding_size={round_vial}",
+            linewidth=2, edgecolor='gray', facecolor='none',
+            transform=transform, clip_on=False
+        )
+        ax.add_patch(vial_outline); artists.append(vial_outline)
+
+        # Cap
+        cap = patches.Rectangle(
+            (x0, y0 + vial_h), vial_w, cap_h,
+            edgecolor='black', facecolor='dimgray', linewidth=1,
+            transform=transform, clip_on=False
+        )
+        ax.add_patch(cap); artists.append(cap)
+
+        # Label
+        label = label.split()
+        first = label[:-1]
+        last = label[-1]
+        label = " ".join(first) + "\n" + last if len(label) > 1 else label[0]
+        if label:
+            txt = ax.text(
+                x0 + vial_w/2, y0 - 0.2*fr_h, label,
+                ha='center', va='top', fontsize=10, clip_on=False,
+                transform=transform, zorder=6
+            )
+            artists.append(txt)
+
+        self.vial_artists.extend(artists)
+    
+
+    def clear(self):
+        """
+        Clears all vial visuals and resets internal state.
+        """
+        for artist in self.vial_artists:
+            artist.remove()
+        self.vial_artists.clear()
+        self.vials.clear()

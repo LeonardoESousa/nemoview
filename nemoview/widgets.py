@@ -64,6 +64,18 @@ def wave(kw):
     kw['wave'] = wavelength
     return wavelength, kw
 
+
+def vial(kw):
+    vial = widgets.Checkbox(
+    value=False,
+    description='Show vial',
+    tooltip='Show color vial in the plot',
+    disabled=False,
+    indent=True
+    )
+    kw['vial'] = vial
+    return vial, kw
+
 def net(kw):
     network = widgets.Checkbox(
     value=False,
