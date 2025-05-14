@@ -3,3 +3,4 @@ include nemoview/*.ipynb
 include nemoview/*mplstyle
 include nemoview/figs/*.png
 include nemoview/figs/*.ico
+include nemoview/templates/*
