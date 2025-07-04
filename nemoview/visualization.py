@@ -79,8 +79,12 @@ def format_number(rate, error_rate, unit="s^-1"):
         exp -= 1
 
     # Determine the number of significant figures for rate and error_rate
-    rate_sig_figs = max(0, -int(np.floor(np.log10(error_rate / 10**exp))))  # Ensure at least 1 significant figure
-    error_rate_sig_figs = max(0, -int(np.floor(np.log10(error_rate / 10**exp))))  # Ensure at least 1 significant figure
+    if np.isnan(error_rate):
+        rate_sig_figs = 2
+        error_rate_sig_figs = 2  # No error rate provided
+    else:    
+        rate_sig_figs = max(0, -int(np.floor(np.log10(error_rate / 10**exp))))  # Ensure at least 1 significant figure
+        error_rate_sig_figs = max(0, -int(np.floor(np.log10(error_rate / 10**exp))))  # Ensure at least 1 significant figure
 
     # Format the string without using LaTeX
     if exp != 0:
@@ -104,8 +108,12 @@ def format_rate(rate, error_rate, unit="$s^{-1}$"):
         exp -= 1
 
     # Determine the number of significant figures for rate and error_rate
-    rate_sig_figs = max(0, -int(np.floor(np.log10(error_rate / 10**exp))))  # Ensure at least 1 significant figure
-    error_rate_sig_figs = max(0, -int(np.floor(np.log10(error_rate / 10**exp))))  # Ensure at least 1 significant figure
+    if np.isnan(error_rate):
+        rate_sig_figs = 2
+        error_rate_sig_figs = 2  # No error rate provided
+    else:    
+        rate_sig_figs = max(0, -int(np.floor(np.log10(error_rate / 10**exp))))  # Ensure at least 1 significant figure
+        error_rate_sig_figs = max(0, -int(np.floor(np.log10(error_rate / 10**exp))))  # Ensure at least 1 significant figure
 
     if exp != 0:
         formatted_string = f"${rate/10**exp:.{rate_sig_figs}f}\\pm{error_rate/10**exp:.{error_rate_sig_figs}f}\\times10^{{{exp:.0f}}}$ " + unit
@@ -348,12 +356,14 @@ def naming(arquivo, folder="."):
 def spectrum(dx, gran):
     num = int((max(dx) - min(dx)) / gran)
     if num == 0:
-        bins = 1
+        bins = [dx[0],dx[0]]
+        hist = [0,1]
+        return hist, bins
     else:
         bins = np.linspace(min(dx), max(dx), num)
-    hist, bins = np.histogram(dx, bins=bins, density=True)
-    bins = bins[:-1] + (bins[1:] - bins[:-1]) / 2
-    return hist, bins
+        hist, bins = np.histogram(dx, bins=bins, density=True)
+        bins = bins[:-1] + (bins[1:] - bins[:-1]) / 2
+        return hist, bins
 
 
 def drift(data):
@@ -368,10 +378,14 @@ def drift(data):
 
 
 def get_peak(y, x, err):
-    if err is None:
+    if err is None or np.all(np.isnan(err)):
         max_idx = y.argmax()
         peak = x[max_idx]
-        return f'{peak:.2f}', f'{1239.8/peak:.0f}'
+        err_p = 0.01
+        min_p = 1239.8/(peak+err_p)
+        mean_p = 1239.8/(peak)
+        max_p = 1239.8/(peak-err_p)
+        return f'{peak:.2f} ± {err_p:.2f}', f'{1239.8/peak:.0f}'
     else:
         # fix seed
         np.random.seed(0)
