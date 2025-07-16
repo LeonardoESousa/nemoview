@@ -9,6 +9,13 @@ from scipy.interpolate import interp1d
 from scipy.linalg import expm
 import pandas as pd
 from IPython.display import display
+import colour
+from colour import (
+    SpectralDistribution,
+    SDS_ILLUMINANTS,
+    sd_to_XYZ,
+    XYZ_to_sRGB
+)
 # pylint: disable=unbalanced-tuple-unpacking
 
 THECOLOR = "black"
@@ -79,7 +86,7 @@ def format_number(rate, error_rate, unit="s^-1"):
         exp -= 1
 
     # Determine the number of significant figures for rate and error_rate
-    if np.isnan(error_rate):
+    if np.isnan(error_rate) or error_rate == 0:
         rate_sig_figs = 2
         error_rate_sig_figs = 2  # No error rate provided
     else:    
@@ -108,7 +115,7 @@ def format_rate(rate, error_rate, unit="$s^{-1}$"):
         exp -= 1
 
     # Determine the number of significant figures for rate and error_rate
-    if np.isnan(error_rate):
+    if np.isnan(error_rate) or error_rate == 0:
         rate_sig_figs = 2
         error_rate_sig_figs = 2  # No error rate provided
     else:    
@@ -652,7 +659,9 @@ def compile(dielec, datas,ensemble_average=False):
             total_rates = pd.concat([total_rates, rates], axis=0, ignore_index=True)
         except NameError:
             total_rates = rates
-    total_rates.rename(columns=lambda x: x.split('(')[0], inplace=True)        
+    total_rates.rename(columns=lambda x: x.split('(')[0], inplace=True)  
+    #sort by Transition
+    total_rates.sort_values(by='Transition', inplace=True)      
     return total_rates
 
 def trpl(time, pop):
@@ -665,16 +674,6 @@ def trpl(time, pop):
     return x_data, y_data
 
 
-import matplotlib.pyplot as plt
-import matplotlib.patches as patches
-import colour
-from colour import (
-    SpectralDistribution,
-    SDS_ILLUMINANTS,
-    sd_to_XYZ,
-    XYZ_to_sRGB
-)
-import numpy as np
 
 class FluorescentVialPlotter:
     def __init__(self, ax, vial_width=0.08, vial_height=0.25, spacing=0.04):
