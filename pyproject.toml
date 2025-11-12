@@ -1,0 +1,40 @@
+[build-system]
+requires = ["setuptools>=69", "wheel", "build"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "nemoview"
+dynamic = ["version"]
+description = 'Visualization tool for NEMO ensembles'
+readme = "README.md"
+requires-python = ">=3.8.0"
+license = "MIT"
+authors = [{ name = "Leonardo Evaristo de Sousa", email = "ledso@dtu.dk" }]
+urls = { Homepage = "https://github.com/LeonardoESousa/nemoview" }
+
+dependencies = [
+  'matplotlib==3.9.0',
+  'voila==0.5.7',
+  'ipywidgets==8.1.3',
+  'pandas==1.5.3',
+  'IPython','Ipympl',
+  'jinja2',
+  'nemophoto>=1.3.2',
+  'ipykernel==6.29.5',
+  'numpy==1.26.4',
+  'colour-science==0.4.6'
+]
+
+[project.scripts]
+nemoview = "nemoview.__main__:main"
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["nemo*"]
+exclude = ["tests", "*.tests", "*.tests.*", "tests.*"]
+
+[tool.setuptools.dynamic]
+version = { attr = "nemoview.__version__.__version__" }

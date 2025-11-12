@@ -376,24 +376,53 @@ def drift(data):
     return np.array([mux, muy, muz])
 
 
-def get_peak(y, x, err):
+def get_peak(y, x, err=None, wavelength=False, n_samples=5000, seed=0):
+    HC = 1239.84193  # eV*nm
+    y = np.asarray(y)
+    x = np.asarray(x)
+
     if err is None:
-        max_idx = y.argmax()
+        max_idx = np.nanargmax(y)
         peak = x[max_idx]
-        return f'{peak:.2f}', f'{1239.8/peak:.0f}'
+
+        if wavelength:
+            # x is in nm -> return energy first, then wavelength
+            E = HC / peak
+            lam = peak
+            return f"{E:.2f}", f"{lam:.0f}"
+        else:
+            # x is in eV -> return energy first, then wavelength
+            E = peak
+            lam = HC / E
+            return f"{E:.2f}", f"{lam:.0f}"
+
+    # --- With uncertainties: Monte Carlo on y, pick argmax each time ---
+    rng = np.random.default_rng(seed)
+    err = np.asarray(err)
+    yy = rng.normal(loc=y, scale=err, size=(n_samples, y.size))
+
+    idx = np.argmax(yy, axis=1)          # index of max for each draw
+    x_peaks = x[idx]                      # peak positions in the native x-units
+
+    if wavelength:
+        # Native x is wavelength (nm); convert each sample to energy (eV)
+        lam_samples = x_peaks
+        E_samples = HC / lam_samples
+
+        E_mean, E_std = np.mean(E_samples), np.std(E_samples, ddof=1)
+        lam_mean, lam_std = np.mean(lam_samples), np.std(lam_samples, ddof=1)
+
+        return f"{E_mean:.2f} ± {E_std:.2f}", f"{lam_mean:.0f} ± {lam_std:.0f}"
+
     else:
-        # fix seed
-        np.random.seed(0)
-        #sample from gaussian with mean y and std err
-        yy = np.random.normal(y, err, size=(1000, len(y)))
-        #find x value of maxima
-        maxima_x = x[np.argmax(yy, axis=1)]
-        peak = np.mean(maxima_x)
-        err_p = np.std(maxima_x)
-        min_p = 1239.8/(peak+err_p)
-        mean_p = 1239.8/(peak)
-        max_p = 1239.8/(peak-err_p)
-        return f'{peak:.2f} ± {err_p:.2f}', f'{mean_p:.0f} [{min_p:.0f},{max_p:.0f}]'
+        # Native x is energy (eV); convert each sample to wavelength (nm)
+        E_samples = x_peaks
+        lam_samples = HC / E_samples
+
+        E_mean, E_std = np.mean(E_samples), np.std(E_samples, ddof=1)
+        lam_mean, lam_std = np.mean(lam_samples), np.std(lam_samples, ddof=1)
+
+        return f"{E_mean:.2f} ± {E_std:.2f}", f"{lam_mean:.0f} ± {lam_std:.0f}"
 
 def vertical_tanh(x, a, b):
     return (a - b) / 2 * np.tanh(3 * (x - 1)) + (a + b) / 2
@@ -676,12 +705,7 @@ class FluorescentVialPlotter:
         self.vials = []
         self.vial_artists = []
 
-    def spectrum_to_color(self, x_eV, y_emission):
-        h = 4.135667696e-15
-        c = 2.99792458e8
-        wavelengths_nm = (h * c / np.array(x_eV)) * 1e9
-        intensities = np.array(y_emission)
-
+    def spectrum_to_color(self, wavelengths_nm, intensities):
         sort_idx = np.argsort(wavelengths_nm)
         wavelengths_nm = wavelengths_nm[sort_idx]
         intensities = intensities[sort_idx]
