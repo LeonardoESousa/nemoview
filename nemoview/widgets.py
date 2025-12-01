@@ -64,7 +64,6 @@ def wave(kw):
     kw['wave'] = wavelength
     return wavelength, kw
 
-
 def vial(kw):
     vial = widgets.Checkbox(
     value=False,

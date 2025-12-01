@@ -16,6 +16,8 @@ from colour import (
     sd_to_XYZ,
     XYZ_to_sRGB
 )
+
+
 # pylint: disable=unbalanced-tuple-unpacking
 
 THECOLOR = "black"
@@ -384,28 +386,53 @@ def drift(data):
     return np.array([mux, muy, muz])
 
 
-def get_peak(y, x, err):
-    if err is None or np.all(np.isnan(err)):
-        max_idx = y.argmax()
+def get_peak(y, x, err=None, wavelength=False, n_samples=5000, seed=0):
+    HC = 1239.84193  # eV*nm
+    y = np.asarray(y)
+    x = np.asarray(x)
+
+    if err is None:
+        max_idx = np.nanargmax(y)
         peak = x[max_idx]
-        err_p = 0.01
-        min_p = 1239.8/(peak+err_p)
-        mean_p = 1239.8/(peak)
-        max_p = 1239.8/(peak-err_p)
-        return f'{peak:.2f} ± {err_p:.2f}', f'{1239.8/peak:.0f}'
+
+        if wavelength:
+            # x is in nm -> return energy first, then wavelength
+            E = HC / peak
+            lam = peak
+            return f"{E:.2f}", f"{lam:.0f}"
+        else:
+            # x is in eV -> return energy first, then wavelength
+            E = peak
+            lam = HC / E
+            return f"{E:.2f}", f"{lam:.0f}"
+
+    # --- With uncertainties: Monte Carlo on y, pick argmax each time ---
+    rng = np.random.default_rng(seed)
+    err = np.asarray(err)
+    yy = rng.normal(loc=y, scale=err, size=(n_samples, y.size))
+
+    idx = np.argmax(yy, axis=1)          # index of max for each draw
+    x_peaks = x[idx]                      # peak positions in the native x-units
+
+    if wavelength:
+        # Native x is wavelength (nm); convert each sample to energy (eV)
+        lam_samples = x_peaks
+        E_samples = HC / lam_samples
+
+        E_mean, E_std = np.mean(E_samples), np.std(E_samples, ddof=1)
+        lam_mean, lam_std = np.mean(lam_samples), np.std(lam_samples, ddof=1)
+
+        return f"{E_mean:.2f} ± {E_std:.2f}", f"{lam_mean:.0f} ± {lam_std:.0f}"
+
     else:
-        # fix seed
-        np.random.seed(0)
-        #sample from gaussian with mean y and std err
-        yy = np.random.normal(y, err, size=(1000, len(y)))
-        #find x value of maxima
-        maxima_x = x[np.argmax(yy, axis=1)]
-        peak = np.mean(maxima_x)
-        err_p = np.std(maxima_x)
-        min_p = 1239.8/(peak+err_p)
-        mean_p = 1239.8/(peak)
-        max_p = 1239.8/(peak-err_p)
-        return f'{peak:.2f} ± {err_p:.2f}', f'{mean_p:.0f} [{min_p:.0f},{max_p:.0f}]'
+        # Native x is energy (eV); convert each sample to wavelength (nm)
+        E_samples = x_peaks
+        lam_samples = HC / E_samples
+
+        E_mean, E_std = np.mean(E_samples), np.std(E_samples, ddof=1)
+        lam_mean, lam_std = np.mean(lam_samples), np.std(lam_samples, ddof=1)
+
+        return f"{E_mean:.2f} ± {E_std:.2f}", f"{lam_mean:.0f} ± {lam_std:.0f}"
 
 def vertical_tanh(x, a, b):
     return (a - b) / 2 * np.tanh(3 * (x - 1)) + (a + b) / 2
@@ -674,9 +701,15 @@ def trpl(time, pop):
     return x_data, y_data
 
 
-
 class FluorescentVialPlotter:
     def __init__(self, ax, vial_width=0.08, vial_height=0.25, spacing=0.04):
+        """
+        Parameters:
+            ax (matplotlib.axes.Axes): Axes to draw the vials near.
+            vial_width (float): Width of each vial in Axes-relative coordinates.
+            vial_height (float): Height of each vial in Axes-relative coordinates.
+            spacing (float): Horizontal space between vials.
+        """
         self.ax = ax
         self.vial_width = vial_width
         self.vial_height = vial_height
@@ -684,78 +717,114 @@ class FluorescentVialPlotter:
         self.vials = []
         self.vial_artists = []
 
-    def spectrum_to_color(self, x_eV, y_emission):
-        h = 4.135667696e-15
-        c = 2.99792458e8
-        wavelengths_nm = (h * c / np.array(x_eV)) * 1e9
-        intensities = np.array(y_emission)
-        idx = np.argsort(wavelengths_nm)
-        w = wavelengths_nm[idx]
-        I = intensities[idx]
-        f = interp1d(w, I, kind='linear', bounds_error=False, fill_value=0.0)
-        uni_w = np.arange(380, 781, 1)
-        uni_I = f(uni_w)
-        if uni_I.max() == 0:
-            return (127,127,127)
-        uni_I /= uni_I.max()
-        sd = SpectralDistribution(dict(zip(uni_w, uni_I)), name="spec")
-        XYZ = sd_to_XYZ(sd, illuminant=SDS_ILLUMINANTS["D65"])
-        RGB = np.clip(XYZ_to_sRGB(XYZ), 0, 1)
-        return tuple((RGB*255).astype(int))
+    def spectrum_to_color(self, wavelengths_nm, intensities):
+        sort_idx = np.argsort(wavelengths_nm)
+        wavelengths_nm = wavelengths_nm[sort_idx]
+        intensities = intensities[sort_idx]
+
+        mask = (wavelengths_nm >= 380) & (wavelengths_nm <= 780)
+        wavelengths_nm = wavelengths_nm[mask]
+        intensities = intensities[mask]
+
+        if len(wavelengths_nm) == 0:
+            return (127, 127, 127)
+
+        intensities /= np.max(intensities)
+        spectrum_dict = dict(zip(wavelengths_nm, intensities))
+        sd = SpectralDistribution(spectrum_dict, name="Emission Spectrum")
+        XYZ = sd_to_XYZ(sd, illuminant=SDS_ILLUMINANTS["D65"], method="integration")
+        RGB = XYZ_to_sRGB(XYZ)
+        RGB = np.clip(RGB, 0, 1)
+        return tuple((RGB * 255).astype(int))
 
     def add_vial(self, x_eV, y_emission, label=None):
         rgb = self.spectrum_to_color(x_eV, y_emission)
         self.vials.append((rgb, label))
 
     def render(self):
+        # save the current data limits
         orig_xlim = self.ax.get_xlim()
         orig_ylim = self.ax.get_ylim()
+
+        # disable autoscale just for the vignette
         self.ax.set_autoscale_on(False)
-        base_x, base_y = 1.08, 0.1
+
+        base_x = 1.08
+        base_y = 0.1
         for i, (rgb, label) in enumerate(self.vials):
-            self._draw_vial(base_x + i*(self.vial_width+self.spacing), base_y, rgb, label)
+            x0 = base_x + i * (self.vial_width + self.spacing)
+            self._draw_vial(x0, base_y, rgb, label)
+
+        # restore the original data limits
         self.ax.set_xlim(orig_xlim)
         self.ax.set_ylim(orig_ylim)
+
+        #re‐enable autoscale for future data additions
         self.ax.set_autoscale_on(True)
 
-    def _draw_vial(self, x0, y0, rgb, label):
-        t = self.ax.transAxes
-        fw, fh = self.vial_width, self.vial_height
-        liq_off_x, liq_off_y = 0.025*fw, 0.02*fh
-        liq_w, liq_h = 0.52*fw, 0.84*fh
-        round_liq = 0.08*min(fw,fh)
-        vial_w, vial_h = 0.60*fw, 1.10*fh
-        round_vial = 0.10*min(fw,fh)
-        cap_h = 0.20*fh
 
-        color = tuple(v/255 for v in rgb)
-        L = patches.FancyBboxPatch(
-            (x0+liq_off_x, y0+liq_off_y), liq_w, liq_h,
+    def _draw_vial(self, x0, y0, rgb_triplet, label=None):
+        ax = self.ax
+        transform = ax.transAxes
+        fr_w, fr_h = self.vial_width, self.vial_height
+
+        liq_off_x, liq_off_y = 0.025 * fr_w, 0.02 * fr_h
+        liq_w, liq_h = 0.52 * fr_w, 0.84 * fr_h
+        round_liq = 0.08 * min(fr_w, fr_h)
+
+        vial_w, vial_h = 0.60 * fr_w, 1.10 * fr_h
+        round_vial = 0.10 * min(fr_w, fr_h)
+        cap_h = 0.20 * fr_h
+
+        srgb = tuple(v / 255 for v in rgb_triplet)
+        artists = []
+        # Liquid
+        liquid = patches.FancyBboxPatch(
+            (x0 + liq_off_x, y0 + liq_off_y), liq_w, liq_h,
             boxstyle=f"round,pad=0.01,rounding_size={round_liq}",
-            linewidth=0, facecolor=color, transform=t, clip_on=False)
-        V = patches.FancyBboxPatch(
+            linewidth=0, facecolor=srgb, alpha=1,
+            transform=transform, clip_on=False
+        )
+        ax.add_patch(liquid); artists.append(liquid)
+
+        # Vial outline
+        vial_outline = patches.FancyBboxPatch(
             (x0, y0), vial_w, vial_h,
             boxstyle=f"round,pad=0.02,rounding_size={round_vial}",
             linewidth=2, edgecolor='gray', facecolor='none',
-            transform=t, clip_on=False)
-        C = patches.Rectangle(
-            (x0, y0+vial_h), vial_w, cap_h,
+            transform=transform, clip_on=False
+        )
+        ax.add_patch(vial_outline); artists.append(vial_outline)
+
+        # Cap
+        cap = patches.Rectangle(
+            (x0, y0 + vial_h), vial_w, cap_h,
             edgecolor='black', facecolor='dimgray', linewidth=1,
-            transform=t, clip_on=False)
+            transform=transform, clip_on=False
+        )
+        ax.add_patch(cap); artists.append(cap)
 
-        for art in (L, V, C):
-            self.ax.add_patch(art)
-        self.vial_artists.extend([L, V, C])
-
+        # Label
+        label = label.split()
+        first = label[:-1]
+        last = label[-1]
+        label = " ".join(first) + "\n" + last if len(label) > 1 else label[0]
         if label:
-            txt = self.ax.text(
-                x0 + vial_w/2, y0 - 0.2*fh, label,
-                ha='center', va='top', fontsize=10,
-                transform=t, clip_on=False)
-            self.vial_artists.append(txt)
+            txt = ax.text(
+                x0 + vial_w/2, y0 - 0.2*fr_h, label,
+                ha='center', va='top', fontsize=10, clip_on=False,
+                transform=transform, zorder=6
+            )
+            artists.append(txt)
+
+        self.vial_artists.extend(artists)
+    
 
     def clear(self):
-        for art in self.vial_artists:
-            art.remove()
+        """
+        Clears all vial visuals and resets internal state.
+        """
+        for artist in self.vial_artists:
+            artist.remove()
         self.vial_artists.clear()
         self.vials.clear()
