@@ -88,8 +88,12 @@ def format_number(rate, error_rate, unit="s^-1"):
         exp -= 1
 
     # Determine the number of significant figures for rate and error_rate
-    rate_sig_figs = max(0, -int(np.floor(np.log10(error_rate / 10**exp))))  # Ensure at least 1 significant figure
-    error_rate_sig_figs = max(0, -int(np.floor(np.log10(error_rate / 10**exp))))  # Ensure at least 1 significant figure
+    if np.isnan(error_rate) or error_rate == 0 or np.isnan(error_rate):
+        rate_sig_figs = 2
+        error_rate_sig_figs = 2  # No error rate provided
+    else:    
+        rate_sig_figs = max(0, -int(np.floor(np.log10(error_rate / 10**exp))))  # Ensure at least 1 significant figure
+        error_rate_sig_figs = max(0, -int(np.floor(np.log10(error_rate / 10**exp))))  # Ensure at least 1 significant figure
 
     # Format the string without using LaTeX
     if exp != 0:
@@ -103,6 +107,7 @@ def format_number(rate, error_rate, unit="s^-1"):
 
     return formatted_string
 
+
 def format_rate(rate, error_rate, unit="$s^{-1}$"):
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
@@ -113,8 +118,12 @@ def format_rate(rate, error_rate, unit="$s^{-1}$"):
         exp -= 1
 
     # Determine the number of significant figures for rate and error_rate
-    rate_sig_figs = max(0, -int(np.floor(np.log10(error_rate / 10**exp))))  # Ensure at least 1 significant figure
-    error_rate_sig_figs = max(0, -int(np.floor(np.log10(error_rate / 10**exp))))  # Ensure at least 1 significant figure
+    if np.isnan(error_rate) or error_rate == 0:
+        rate_sig_figs = 2
+        error_rate_sig_figs = 2  # No error rate provided
+    else:    
+        rate_sig_figs = max(0, -int(np.floor(np.log10(error_rate / 10**exp))))  # Ensure at least 1 significant figure
+        error_rate_sig_figs = max(0, -int(np.floor(np.log10(error_rate / 10**exp))))  # Ensure at least 1 significant figure
 
     if exp != 0:
         formatted_string = f"${rate/10**exp:.{rate_sig_figs}f}\\pm{error_rate/10**exp:.{error_rate_sig_figs}f}\\times10^{{{exp:.0f}}}$ " + unit
@@ -122,19 +131,6 @@ def format_rate(rate, error_rate, unit="$s^{-1}$"):
         formatted_string = f"${rate:.{rate_sig_figs}f}\\pm{error_rate:.{error_rate_sig_figs}f}$ " + unit
 
     return formatted_string
-
-#def format_rate(rate, error_rate, unit="$s^{-1}$"):
-#    with warnings.catch_warnings():
-#        warnings.simplefilter("ignore")
-#        exp = np.round((np.nan_to_num(np.log10(rate))),0)
-#    if exp < -100:
-#        exp = -100
-#    if exp != 0:
-#        formatted_string = f"${rate/10**exp:.1f}\\pm{error_rate/10**exp:.1f}\\times10^{{{exp:.0f}}}$ "+unit
-#    else:
-#        formatted_string = f"${rate/10**exp:.1f}\\pm{error_rate/10**exp:.1f}$ "+unit
-#    return formatted_string
-
 
 class State:
     def __init__(self):
