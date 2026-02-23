@@ -7,7 +7,7 @@ name = "nemoview"
 dynamic = ["version"]
 description = 'Visualization tool for NEMO ensembles'
 readme = "README.md"
-requires-python = ">=3.8.0"
+requires-python = ">=3.9"
 license = { file =  "LICENSE"}
 authors = [{ name = "Leonardo Evaristo de Sousa", email = "ledso@dtu.dk" }]
 urls = { Homepage = "https://github.com/LeonardoESousa/nemoview" }
