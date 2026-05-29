@@ -343,6 +343,160 @@ def make_diagram(files, dielec, cutoff=0.01):
     return ax
 
 
+def make_ensemble_diagram(
+    molecules,
+    dielec,
+    initial_states=None,
+    cutoff=10,
+    ensemble_average=False,
+    states=None,
+    legend=False,
+    figsize=None,
+    axes=None,
+):
+    """
+    Build Jablonski-style diagrams from Molecule objects.
+
+    Parameters
+    ----------
+    molecules : Molecule or iterable of Molecule
+        Objects with the NEMO Molecule API.
+    dielec : tuple
+        ``(epsilon, refractive_index)`` used for the rate calculation.
+    initial_states : str, sequence, dict, optional
+        Initial state passed to ``Molecule.rates``. If omitted, the first state
+        in each Molecule is used.
+    cutoff : float, default 10
+        Minimum yield percentage displayed in the diagram.
+    ensemble_average : bool, default False
+        Passed to ``Molecule.rates``.
+    states : tuple, optional
+        ``(max_s, max_t)`` state limits passed to ``Molecule.rates``.
+    legend : bool, default False
+        Display transition-rate labels as in the dashboard.
+    figsize : tuple, optional
+        Size passed to ``plt.subplots`` when ``axes`` is not provided.
+    axes : matplotlib Axes or sequence of Axes, optional
+        Existing axes to draw on.
+
+    Returns
+    -------
+    matplotlib.figure.Figure
+        Figure containing one diagram axis per Molecule.
+    """
+    if hasattr(molecules, "rates"):
+        molecules = [molecules]
+    else:
+        molecules = list(molecules)
+
+    if not molecules:
+        raise ValueError("At least one Molecule object is required.")
+    for molecule in molecules:
+        if not hasattr(molecule, "rates"):
+            raise TypeError("make_ensemble_diagram expects Molecule objects.")
+
+    eps, refractive_index = dielec
+    if refractive_index**2 > eps:
+        raise ValueError("n_r^2 must be less than or equal to epsilon.")
+
+    molecule_titles = [getattr(molecule, "name", None) or "" for molecule in molecules]
+    if len(molecules) > 1:
+        molecule_titles = [
+            f"{chr(97 + index)}) {title}".rstrip()
+            for index, title in enumerate(molecule_titles)
+        ]
+
+    if initial_states is None:
+        selected_initials = {}
+    elif isinstance(initial_states, dict):
+        selected_initials = initial_states
+    elif isinstance(initial_states, str):
+        selected_initials = {index: initial_states for index in range(len(molecules))}
+    else:
+        selected_initials = dict(zip(range(len(molecules)), initial_states))
+
+    if axes is None:
+        if figsize is None:
+            figsize = (11, 4)
+        fig, axes = plt.subplots(1, len(molecules), figsize=figsize)
+        axes = np.atleast_1d(axes).ravel().tolist()
+    else:
+        axes = np.atleast_1d(axes).ravel().tolist()
+        if len(axes) < len(molecules):
+            raise ValueError("Not enough axes were provided for the molecule groups.")
+        fig = axes[0].get_figure()
+
+    used_axes = axes[:len(molecules)]
+    for ax in used_axes:
+        ax.clear()
+        ax.axis("off")
+        ax.set_xticklabels([])
+
+    for index, molecule in enumerate(molecules):
+        ax = used_axes[index]
+        fontsize = set_fontsize(ax)
+        ax.set_title(molecule_titles[index], loc="left", fontsize=fontsize)
+
+        initial = selected_initials.get(index)
+        if initial is None:
+            initial = selected_initials.get(getattr(molecule, "name", ""))
+        if initial is None:
+            molecule_states = getattr(molecule, "states", ())
+            if not molecule_states:
+                raise ValueError(f"Molecule at index {index} has no states.")
+            initial = molecule_states[0]
+
+        total_rates = molecule.rates(
+            dielec,
+            ensemble_average=ensemble_average,
+            states=states,
+            initial_state=initial,
+        )
+
+        transition_states = [
+            transition.split(">")[0][:-1]
+            for transition in total_rates["Transition"].values
+        ]
+        for state in np.unique(transition_states):
+            plot_data = total_rates[total_rates["Transition"].str.startswith(state)]
+            plot_transitions(plot_data, ax, cutoff)
+
+        ax.set_ylim(bottom=-0.15)
+        write_energies(ax)
+
+    for ax in used_axes:
+        ax.relim()
+
+    top = [ax.get_ylim()[1] for ax in used_axes]
+    bottom = [ax.get_ylim()[0] for ax in used_axes]
+    for ax in used_axes:
+        if legend:
+            ax.set_ylim([min(bottom), 1.1 * max(top)])
+            ax.legend(
+                fontsize=set_fontsize(ax),
+                loc="upper right",
+                frameon=False,
+                bbox_to_anchor=(1.0, 1.3),
+            )
+        else:
+            ax.set_ylim([min(bottom), max(top)])
+
+    used_axes[-1].text(
+        1,
+        0,
+        f"$\\epsilon ={eps:.3f}$\n$n={refractive_index:.3f}$",
+        transform=used_axes[-1].transAxes,
+        fontsize=set_fontsize(used_axes[-1]),
+        verticalalignment="top",
+        horizontalalignment="right",
+    )
+    return fig
+
+
+def make_ensemble_diagrams(*args, **kwargs):
+    return make_ensemble_diagram(*args, **kwargs)
+
+
 #################################################################################################################################
 ##PREVENTS OVERWRITING#########################################
 def naming(arquivo, folder="."):
@@ -678,18 +832,6 @@ def kinetics(total_rates, initial, debug=False):
     return time, pop
 
 ###############################################################
-
-def compile(dielec, datas,ensemble_average=False):
-    for data in datas:
-        rates = data.rate(dielec, ensemble_average=ensemble_average)
-        try:
-            total_rates = pd.concat([total_rates, rates], axis=0, ignore_index=True)
-        except NameError:
-            total_rates = rates
-    total_rates.rename(columns=lambda x: x.split('(')[0], inplace=True)  
-    #sort by Transition
-    total_rates.sort_values(by='Transition', inplace=True)      
-    return total_rates
 
 def trpl(time, pop):
     states = [i for i in pop.index.to_list() if '->S0' in i]
