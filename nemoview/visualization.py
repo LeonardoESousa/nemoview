@@ -5,17 +5,24 @@ import nemo.analysis
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
+from matplotlib.lines import Line2D
+from matplotlib.path import Path
 from scipy.interpolate import interp1d
 from scipy.linalg import expm
 import pandas as pd
 from IPython.display import display
-import colour
-from colour import (
-    SpectralDistribution,
-    SDS_ILLUMINANTS,
-    sd_to_XYZ,
-    XYZ_to_sRGB
-)
+try:
+    from colour import (
+        SpectralDistribution,
+        SDS_ILLUMINANTS,
+        sd_to_XYZ,
+        XYZ_to_sRGB,
+    )
+except ImportError:
+    SpectralDistribution = None
+    SDS_ILLUMINANTS = None
+    sd_to_XYZ = None
+    XYZ_to_sRGB = None
 
 
 # pylint: disable=unbalanced-tuple-unpacking
@@ -49,7 +56,7 @@ def fill(ax, xmin, xmax, y, text):
     fontsize = set_fontsize(ax)
     newy = check(ax, xmin, xmax)
     try:
-        ax.fill_between([xmin, xmax], y, newy, alpha=0.5, hatch="x", color=cmap(0.5))
+        ax.fill_between([xmin, xmax], y, newy, alpha=0.22, hatch="x", color=cmap(0.5))
         txt_x = xmin + (xmax - xmin) / 2
         for txt in ax.texts:
             if txt.get_position()[0] == txt_x and txt.get_position()[1] != -0.4:
@@ -185,16 +192,81 @@ def relu(x):
     return np.maximum(0.3, x)
 
 
+def state_label(state):
+    return f"{state[0]}$_{{{state[1:]}}}$"
+
+
+def transition_label(state, target, transition_type, rate, error):
+    arrow = "\\to" if transition_type == "-" else "\\leadsto"
+    return (
+        f"{state[0]}$_{{{state[1:]}}}{arrow}$"
+        f"{target[0]}$_{{{target[1:]}}}$: "
+        + format_rate(rate, error)
+    )
+
+
+def transition_style(weight, fontsize, color):
+    scale = np.sqrt(np.clip(weight, 0.0, 1.0))
+    return {
+        "linewidth": 0.75 + 2.75 * scale,
+        "mutation_scale": 7.0 + 12.0 * scale,
+        "alpha": 0.35 + 0.6 * scale,
+        "color": color,
+    }
+
+
+def add_wavy_arrow(ax, x, y_start, y_end, style, label=None):
+    distance = abs(y_start - y_end)
+    if distance <= 1e-8:
+        return
+
+    waves = max(2, int(np.ceil(distance / 0.85)))
+    amp = 0.022 + 0.0035 * style["linewidth"]
+    straight_fraction = min(0.18, max(0.08, 0.14 / distance))
+    wave_fraction = 1 - straight_fraction
+
+    t_wave = np.linspace(0, wave_fraction, 150)
+    local_t = t_wave / wave_fraction
+    y_wave = y_start + (y_end - y_start) * t_wave
+    envelope = np.sin(np.pi * local_t)
+    x_wave = x + amp * np.sin(2 * np.pi * waves * local_t) * envelope
+
+    t_tip = np.linspace(wave_fraction, 1, 26)
+    y_tip = y_start + (y_end - y_start) * t_tip
+    x_tip = np.full_like(y_tip, x)
+
+    xvals = np.concatenate([x_wave, x_tip[1:]])
+    y = np.concatenate([y_wave, y_tip[1:]])
+    path = Path(np.column_stack([xvals, y]))
+    arrow = patches.FancyArrowPatch(
+        path=path,
+        arrowstyle="-|>,head_length=0.32,head_width=0.22",
+        mutation_scale=max(6.0, style["mutation_scale"] * 0.75),
+        color=style["color"],
+        linewidth=style["linewidth"],
+        alpha=style["alpha"],
+        shrinkA=0,
+        shrinkB=0,
+        capstyle="round",
+        joinstyle="round",
+        zorder=12,
+        label=label,
+    )
+    ax.add_patch(arrow)
+
+
 def plot_transitions(data, ax, cutoff):
+    if data.empty:
+        return
+
     cutoff = cutoff / 100
     fontsize = set_fontsize(ax)
-    lw = fontsize / 2
+    level_lw = max(1.6, fontsize / 5)
     rates = data["Rate"].to_numpy()
     error = data["Error"].to_numpy()
     transitions = data["Transition"].to_numpy()
-    weights = data["Prob"].to_numpy()/100
-    #weights /= np.sum(weights)
-    #weights = np.round(weights, 4)
+    weights = np.nan_to_num(data["Prob"].to_numpy() / 100, nan=0.0)
+    weights = np.clip(weights, 0.0, 1.0)
     energies = data["AvgDE+L"].to_numpy()
     energies[1:] += energies[0]
     base = energies[0]
@@ -205,13 +277,13 @@ def plot_transitions(data, ax, cutoff):
     S = State()
     ##Makes S0 lines
     xmin, xmax = S.x(state)
-    fill(ax, xmin, xmax, base, f"{state[0]}$_{num}$")
-    ax.hlines(y=base, xmin=xmin, xmax=xmax, lw=lw, color=S.color(state))
-    ax.hlines(y=0, xmin=xmin, xmax=xmax, lw=lw, color=S.color(state))
+    fill(ax, xmin, xmax, base, state_label(state))
+    ax.hlines(y=base, xmin=xmin, xmax=xmax, lw=level_lw, color=S.color(state), zorder=6)
+    ax.hlines(y=0, xmin=xmin, xmax=xmax, lw=level_lw, color=S.color(state), zorder=6)
     ax.text(
         x=xmin + abs(xmax - xmin) / 2,
         y=-0.4,
-        s=f"S$_{0}$",
+        s="S$_{0}$",
         ha="center",
         va="center",
         color=THECOLOR,
@@ -219,110 +291,374 @@ def plot_transitions(data, ax, cutoff):
     )
     ##
     for i, _ in enumerate(energies):
-        style = f"Fancy, tail_width={lw}, head_width={lw*3}, head_length={lw*2}"
+        if weights[i] <= cutoff:
+            continue
+
+        style = transition_style(weights[i], fontsize, S.color(state))
         kw = dict(
-            arrowstyle=style,
-            color=S.color(state),
+            arrowstyle="-|>",
+            color=style["color"],
+            linewidth=style["linewidth"],
+            alpha=style["alpha"],
             zorder=10,
-            mutation_scale=weights[i],#relu(weights[i]),
+            mutation_scale=style["mutation_scale"],
+            shrinkA=0,
+            shrinkB=0,
         )
-        if np.round(weights[i], 2) > cutoff:
-            if alvos[i] == "S0":
-                xmin, xmax = S.x(state)
-                if trans[i] == "-":
-                    a3 = patches.FancyArrowPatch(
-                        (xmin, base),
-                        (xmin, 0),
-                        **kw,
-                        label=f"{state[0]}$_{state[1]}\\:\\to\\:${alvos[i][0]}$_{alvos[i][1:]}$: "
-                        + format_rate(rates[i], error[i]),
-                    )
-                else:
-                    a3 = patches.FancyArrowPatch(
-                        (xmax, base),
-                        (xmax, 0),
-                        connectionstyle=f"arc3,rad={-0.1}",
-                        **kw,
-                        label=f"{state[0]}$_{state[1]}\\leadsto${alvos[i][0]}$_{alvos[i][1:]}$: "
-                        + format_rate(rates[i], error[i]),
-                    )
+        label = transition_label(state, alvos[i], trans[i], rates[i], error[i])
+
+        if alvos[i] == "S0":
+            xmin, xmax = S.x(state)
+            if trans[i] == "-":
+                a3 = patches.FancyArrowPatch(
+                    (xmin, base),
+                    (xmin, 0),
+                    **kw,
+                    label=label,
+                )
                 ax.add_patch(a3)
             else:
-                xmin, xmax = S.x(alvos[i])
-                _ = check(ax, xmin, xmax)
-                fill(ax, xmin, xmax, energies[i], f"{alvos[i][0]}$_{alvos[i][1:]}$")
-                ax.hlines(
-                    y=energies[i], xmin=xmin, xmax=xmax, lw=lw, color=S.color(state)
-                )
-                fx, tx, curve = S.arrow(state, alvos[i])
-                a3 = patches.FancyArrowPatch(
-                    (fx, base),
-                    (tx, energies[i]),
-                    connectionstyle=f"arc3,rad={curve*0.5}",
-                    **kw,
-                    label=f"{state[0]}$_{state[1]}\\leadsto${alvos[i][0]}$_{alvos[i][1:]}$: "
-                    + format_rate(rates[i], error[i]),
-                )
-                ax.add_patch(a3)
+                add_wavy_arrow(ax, xmax, base, 0, style, label=label)
+            continue
+
+        xmin, xmax = S.x(alvos[i])
+        _ = check(ax, xmin, xmax)
+        fill(ax, xmin, xmax, energies[i], state_label(alvos[i]))
+        ax.hlines(
+            y=energies[i],
+            xmin=xmin,
+            xmax=xmax,
+            lw=level_lw,
+            color=S.color(state),
+            zorder=6,
+        )
+        fx, tx, curve = S.arrow(state, alvos[i])
+        a3 = patches.FancyArrowPatch(
+            (fx, base),
+            (tx, energies[i]),
+            connectionstyle=f"arc3,rad={curve*0.35}",
+            **kw,
+            label=label,
+        )
+        ax.add_patch(a3)
+
+
+def _iter_level_segments(ax):
+    for elem in ax.get_children():
+        try:
+            paths = elem.get_paths()
+        except AttributeError:
+            continue
+        for path in paths:
+            vert = path.vertices
+            if len(vert) < 2:
+                continue
+            yvals = vert[:, 1]
+            xvals = vert[:, 0]
+            if np.ptp(xvals) <= 1e-8:
+                continue
+            if np.nanmax(np.abs(yvals - yvals[0])) > 1e-8:
+                continue
+            yield float(np.nanmin(xvals)), float(np.nanmax(xvals)), float(yvals[0])
+
+
+def _artist_x_bounds(ax):
+    values = []
+    for elem in ax.get_children():
+        try:
+            paths = elem.get_paths()
+        except AttributeError:
+            paths = []
+        for path in paths:
+            xvals = path.vertices[:, 0]
+            values.extend([np.nanmin(xvals), np.nanmax(xvals)])
+
+        if isinstance(elem, Line2D):
+            xvals = np.asarray(elem.get_xdata(), dtype=float)
+            if xvals.size:
+                values.extend([np.nanmin(xvals), np.nanmax(xvals)])
+
+    values = [value for value in values if np.isfinite(value)]
+    if not values:
+        return None
+    return min(values), max(values)
+
+
+def _spaced_positions(levels, min_gap, bottom, top):
+    positions = np.array(sorted(levels), dtype=float)
+    if len(positions) <= 1:
+        return positions
+
+    for index in range(1, len(positions)):
+        positions[index] = max(positions[index], positions[index - 1] + min_gap)
+
+    overflow = positions[-1] - top
+    if overflow > 0:
+        positions -= overflow
+
+    for index in range(len(positions) - 2, -1, -1):
+        positions[index] = min(positions[index], positions[index + 1] - min_gap)
+
+    underflow = bottom - positions[0]
+    if underflow > 0:
+        positions += underflow
+
+    return positions
+
+
+def _place_energy_labels(ax, levels, side, xmin, xmax, fontsize):
+    if not levels:
+        return
+
+    levels = sorted(set(np.round(levels, 6)))
+    ymin, ymax = ax.get_ylim()
+    span = max(ymax - ymin, 1.0)
+    min_gap = max(0.44, 0.030 * fontsize)
+    bottom = ymin + 0.04 * span
+    top = ymax - 0.04 * span
+    label_positions = _spaced_positions(levels, min_gap, bottom, top)
+    label_pad = 0.05 * span
+    if label_positions.size:
+        new_ymin = min(ymin, float(label_positions[0] - label_pad))
+        new_ymax = max(ymax, float(label_positions[-1] + label_pad))
+        if new_ymin < ymin or new_ymax > ymax:
+            ax.set_ylim(new_ymin, new_ymax)
+    width = max(xmax - xmin, 1.0)
+    pad = 0.055 * width
+
+    if side == "left":
+        text_x = xmin - pad
+        edge_x = xmin
+        ha = "right"
+        guide_text_x = text_x + 0.20 * pad
+    else:
+        text_x = xmax + pad
+        edge_x = xmax
+        ha = "left"
+        guide_text_x = text_x - 0.20 * pad
+
+    for level, label_y in zip(levels, label_positions):
+        if abs(label_y - level) > 0.02:
+            ax.plot(
+                [edge_x, guide_text_x],
+                [level, label_y],
+                color="0.55",
+                lw=0.6,
+                alpha=0.65,
+                clip_on=False,
+                zorder=3,
+            )
+        ax.text(
+            x=text_x,
+            y=label_y,
+            s=f"{level:.2f} eV",
+            ha=ha,
+            va="center",
+            fontsize=fontsize,
+            color=THECOLOR,
+            clip_on=False,
+            bbox=dict(facecolor="white", edgecolor="none", alpha=0.78, pad=0.8),
+            zorder=20,
+        )
 
 
 def write_energies(ax):
     fontsize = set_fontsize(ax)
-    xmin = np.inf
-    xmax = -np.inf
-    yleft, yright = [], []
-    for elem in ax.get_children():
-        try:
-            vert = elem.get_paths()[0].vertices
-            xmin = min(xmin, min(vert[:, 0]))
-            xmax = max(xmax, max(vert[:, 0]))
-        except AttributeError:
-            pass
-    for elem in ax.get_children():
-        try:
-            vert = elem.get_paths()[0].vertices
-            y = vert[0, 1]
-            if (
-                max(vert[:, 0]) - xmin < xmax - min(vert[:, 0])
-                and y not in yleft
-                and y != 0
-            ):
-                yleft.append(y)
-            elif (
-                max(vert[:, 0]) - xmin > xmax - min(vert[:, 0])
-                and y not in yright
-                and y != 0
-            ):
-                yright.append(y)
-        except AttributeError:
-            pass
-    dleft, dright = [100], [100]
-    for y in sorted(yleft):
-        if min(np.abs([y - i for i in dleft])) > fontsize*0.18/13:
-            ax.text(
-                x=0.98 * xmin,
-                y=y,
-                s=f"{y:.2f} eV",
-                ha="right",
-                va="center",
-                fontsize=fontsize,
-                color=THECOLOR,
-            )
-            dleft.append(y)
-    for y in sorted(yright):
-        if min(np.abs([y - i for i in dright])) > fontsize*0.18/13:
-            ax.text(
-                x=1.02 * xmax,
-                y=y,
-                s=f"{y:.2f} eV",
-                ha="left",
-                va="center",
-                fontsize=fontsize,
-                color=THECOLOR,
-            )
-            dright.append(y)
-    ax.set_xlim([0.9 * xmin, 1.1 * xmax])
+    level_segments = list(_iter_level_segments(ax))
+    if not level_segments:
+        return
 
+    xmin = min(segment[0] for segment in level_segments)
+    xmax = max(segment[1] for segment in level_segments)
+    if not np.isfinite(xmin) or not np.isfinite(xmax):
+        return
+    artist_bounds = _artist_x_bounds(ax)
+    plot_xmin, plot_xmax = artist_bounds if artist_bounds is not None else (xmin, xmax)
+
+    midpoint = xmin + (xmax - xmin) / 2
+    yleft, yright = [], []
+    for x0, x1, y in level_segments:
+        if np.isclose(y, 0):
+            continue
+        if (x0 + x1) / 2 <= midpoint:
+            yleft.append(y)
+        else:
+            yright.append(y)
+
+    _place_energy_labels(ax, yleft, "left", plot_xmin, plot_xmax, fontsize)
+    _place_energy_labels(ax, yright, "right", plot_xmin, plot_xmax, fontsize)
+
+    width = max(plot_xmax - plot_xmin, 1.0)
+    ax.set_xlim([plot_xmin - 0.11 * width, plot_xmax + 0.11 * width])
+
+
+def consolidate_ground_labels(ax):
+    ground_labels = [
+        text for text in ax.texts
+        if text.get_text() == "S$_{0}$" and text.get_visible()
+    ]
+    if len(ground_labels) <= 1:
+        return
+
+    xs = [text.get_position()[0] for text in ground_labels]
+    ys = [text.get_position()[1] for text in ground_labels]
+    fontsize = ground_labels[0].get_fontsize()
+    for text in ground_labels:
+        text.set_visible(False)
+    ax.text(
+        x=float(np.mean(xs)),
+        y=float(np.mean(ys)),
+        s="S$_{0}$",
+        ha="center",
+        va="center",
+        color=THECOLOR,
+        fontsize=fontsize,
+    )
+
+
+def _legend_proxy(handle, label):
+    alpha = handle.get_alpha()
+    alpha = 1.0 if alpha is None else alpha
+    linewidth = 2.0
+    color = THECOLOR
+
+    if isinstance(handle, Line2D):
+        color = handle.get_color()
+        linewidth = handle.get_linewidth()
+    elif isinstance(handle, patches.Patch):
+        linewidth = handle.get_linewidth()
+        edgecolor = handle.get_edgecolor()
+        facecolor = handle.get_facecolor()
+        if edgecolor is not None and len(edgecolor) and edgecolor[-1] > 0:
+            color = edgecolor
+        elif facecolor is not None and len(facecolor):
+            color = facecolor
+
+    return Line2D(
+        [0, 1],
+        [0, 0],
+        color=color,
+        alpha=alpha,
+        lw=max(1.5, linewidth),
+        linestyle="-",
+        solid_capstyle="round",
+    )
+
+
+def collect_legend_items(axes):
+    seen = set()
+    handles = []
+    labels = []
+    for ax in axes:
+        ax_handles, ax_labels = ax.get_legend_handles_labels()
+        for handle, label in zip(ax_handles, ax_labels):
+            if not label or label.startswith("_") or label in seen:
+                continue
+            seen.add(label)
+            handles.append(_legend_proxy(handle, label))
+            labels.append(label)
+    return handles, labels
+
+
+def clear_diagram_legends(fig, axes):
+    for legend_artist in list(fig.legends):
+        legend_artist.remove()
+    for ax in axes:
+        legend_artist = ax.get_legend()
+        if legend_artist is not None:
+            legend_artist.remove()
+
+
+def diagram_legend_fontsize(ax, multi_panel=False):
+    scale = 0.72 if multi_panel else 0.82
+    upper = 11 if multi_panel else 12
+    return max(8.5, min(upper, set_fontsize(ax) * scale))
+
+
+def panel_legend_items(axes):
+    items = []
+    for ax in axes:
+        handles, labels = collect_legend_items([ax])
+        if handles:
+            items.append((ax, handles, labels))
+    return items
+
+
+def add_panel_legends(fig, items, bottom_margin):
+    legend_y = max(0.02, bottom_margin - 0.025)
+    for ax, handles, labels in items:
+        position = ax.get_position()
+        center_x = position.x0 + position.width / 2
+        fontsize = diagram_legend_fontsize(ax, multi_panel=True)
+        fig.legend(
+            handles,
+            labels,
+            loc="upper center",
+            bbox_to_anchor=(center_x, legend_y),
+            bbox_transform=fig.transFigure,
+            frameon=False,
+            fontsize=fontsize,
+            handlelength=1.8,
+            labelspacing=0.42,
+            borderaxespad=0,
+        )
+
+
+def finalize_diagram_layout(fig, axes, legend=False):
+    if not axes:
+        return
+    clear_diagram_legends(fig, axes)
+
+    bottoms = [ax.get_ylim()[0] for ax in axes]
+    tops = [ax.get_ylim()[1] for ax in axes]
+    bottom = min(min(bottoms), -0.65)
+    top = max(tops)
+    span = max(top - bottom, 1.0)
+    top += 0.08 * span
+
+    for ax in axes:
+        ax.set_ylim(bottom, top)
+        left, right = ax.get_xlim()
+        width = max(right - left, 1.0)
+        ax.set_xlim(left - 0.04 * width, right + 0.04 * width)
+
+    right_margin = 0.98
+    bottom_margin = 0.03
+    axis_legend_items = []
+    if legend:
+        if len(axes) == 1:
+            handles, labels = collect_legend_items(axes)
+            if handles:
+                legend_fontsize = diagram_legend_fontsize(axes[0])
+                fig.legend(
+                    handles,
+                    labels,
+                    loc="center left",
+                    bbox_to_anchor=(0.80, 0.5),
+                    frameon=False,
+                    fontsize=legend_fontsize,
+                    handlelength=1.8,
+                    labelspacing=0.42,
+                )
+                right_margin = 0.78
+        else:
+            axis_legend_items = panel_legend_items(axes)
+            if axis_legend_items:
+                max_rows = max(len(labels) for _, _, labels in axis_legend_items)
+                bottom_margin = min(0.54, max(0.22, 0.095 + 0.048 * max_rows))
+
+    try:
+        fig.tight_layout(rect=(0.02, bottom_margin, right_margin, 0.98), pad=0.4)
+    except ValueError:
+        fig.subplots_adjust(
+            left=0.06,
+            right=right_margin,
+            bottom=max(0.10, bottom_margin),
+            top=0.94,
+        )
+
+    if axis_legend_items:
+        add_panel_legends(fig, axis_legend_items, bottom_margin)
 
 def make_diagram(files, dielec, cutoff=0.01):
     _, ax = plt.subplots()
@@ -337,6 +673,7 @@ def make_diagram(files, dielec, cutoff=0.01):
     # leg = plt.legend(loc='best',fontsize=10,title=f'$\epsilon ={dielec[0]}$ $n={dielec[1]}$',title_fontsize=10)
     # for item in leg.legendHandles:
     #    item.set_visible(False)
+    consolidate_ground_labels(ax)
     write_energies(ax)
     # arquivo = nemo.tools.naming('diagram.png')
     # plt.savefig(arquivo,facecolor='white',dpi=300)#, transparent=True)
@@ -346,7 +683,7 @@ def make_diagram(files, dielec, cutoff=0.01):
 def make_ensemble_diagram(
     molecules,
     dielec,
-    initial_states=None,
+    initial_state=None,
     cutoff=10,
     ensemble_average=False,
     states=None,
@@ -363,7 +700,7 @@ def make_ensemble_diagram(
         Objects with the NEMO Molecule API.
     dielec : tuple
         ``(epsilon, refractive_index)`` used for the rate calculation.
-    initial_states : str, sequence, dict, optional
+    initial_state : str, sequence, dict, optional
         Initial state passed to ``Molecule.rates``. If omitted, the first state
         in each Molecule is used.
     cutoff : float, default 10
@@ -406,18 +743,20 @@ def make_ensemble_diagram(
             for index, title in enumerate(molecule_titles)
         ]
 
-    if initial_states is None:
+    if initial_state is None:
         selected_initials = {}
-    elif isinstance(initial_states, dict):
-        selected_initials = initial_states
-    elif isinstance(initial_states, str):
-        selected_initials = {index: initial_states for index in range(len(molecules))}
+    elif isinstance(initial_state, dict):
+        selected_initials = initial_state
+    elif isinstance(initial_state, str):
+        selected_initials = {index: initial_state for index in range(len(molecules))}
     else:
-        selected_initials = dict(zip(range(len(molecules)), initial_states))
+        selected_initials = dict(zip(range(len(molecules)), initial_state))
 
     if axes is None:
         if figsize is None:
-            figsize = (11, 4)
+            width = max(11, 5.5 * len(molecules))
+            height = 5.6 if legend and len(molecules) > 1 else 4
+            figsize = (width, height)
         fig, axes = plt.subplots(1, len(molecules), figsize=figsize)
         axes = np.atleast_1d(axes).ravel().tolist()
     else:
@@ -452,34 +791,29 @@ def make_ensemble_diagram(
             states=states,
             initial_state=initial,
         )
+        if total_rates.empty:
+            ax.text(
+                0.5,
+                0.5,
+                "No transitions",
+                transform=ax.transAxes,
+                ha="center",
+                va="center",
+                fontsize=fontsize,
+                color=THECOLOR,
+            )
+            continue
 
-        transition_states = [
-            transition.split(">")[0][:-1]
-            for transition in total_rates["Transition"].values
-        ]
-        for state in np.unique(transition_states):
-            plot_data = total_rates[total_rates["Transition"].str.startswith(state)]
+        transition_sources = total_rates["Transition"].str.split(">").str[0].str[:-1]
+        for state in pd.unique(transition_sources):
+            plot_data = total_rates[transition_sources == state]
             plot_transitions(plot_data, ax, cutoff)
 
-        ax.set_ylim(bottom=-0.15)
-        write_energies(ax)
-
-    for ax in used_axes:
         ax.relim()
-
-    top = [ax.get_ylim()[1] for ax in used_axes]
-    bottom = [ax.get_ylim()[0] for ax in used_axes]
-    for ax in used_axes:
-        if legend:
-            ax.set_ylim([min(bottom), 1.1 * max(top)])
-            ax.legend(
-                fontsize=set_fontsize(ax),
-                loc="upper right",
-                frameon=False,
-                bbox_to_anchor=(1.0, 1.3),
-            )
-        else:
-            ax.set_ylim([min(bottom), max(top)])
+        ax.autoscale_view()
+        ax.set_ylim(bottom=-0.15)
+        consolidate_ground_labels(ax)
+        write_energies(ax)
 
     used_axes[-1].text(
         1,
@@ -490,6 +824,7 @@ def make_ensemble_diagram(
         verticalalignment="top",
         horizontalalignment="right",
     )
+    finalize_diagram_layout(fig, used_axes, legend=legend)
     return fig
 
 
@@ -833,6 +1168,23 @@ def kinetics(total_rates, initial, debug=False):
 
 ###############################################################
 
+def compile(dielec, datas, ensemble_average=False, states=None):
+    warnings.warn(
+        "visualization.compile is deprecated; use Molecule.rates() or "
+        "nemo.nemo.compile_rates() instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
+    from nemo.nemo import compile_rates
+
+    return compile_rates(
+        dielec,
+        datas,
+        ensemble_average=ensemble_average,
+        states=states,
+    )
+
+
 def trpl(time, pop):
     states = [i for i in pop.index.to_list() if '->S0' in i]
     emission = pop.loc[states].sum().to_numpy()
@@ -860,6 +1212,9 @@ class FluorescentVialPlotter:
         self.vial_artists = []
 
     def spectrum_to_color(self, wavelengths_nm, intensities):
+        if SpectralDistribution is None:
+            return (127, 127, 127)
+
         sort_idx = np.argsort(wavelengths_nm)
         wavelengths_nm = wavelengths_nm[sort_idx]
         intensities = intensities[sort_idx]
