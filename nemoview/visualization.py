@@ -176,8 +176,19 @@ class State:
             xmin = self.tmin + (num - 1) * (1 + factor) * self.size
             return xmin, xmin + self.size
 
-    def arrow(self, state, alvo):
-        if "T" in state and "T" in alvo:
+    def arrow(self, state, alvo, transition_type="-"):
+        if transition_type == "~":
+            is_upward_singlet_transfer = (
+                state[0] == "S"
+                and alvo[0] == "S"
+                and int(alvo[1:]) > int(state[1:])
+            )
+            x_i = self.x(state)[0] if is_upward_singlet_transfer else self.x(state)[1]
+            x_f = self.x(alvo)[0] + self.size / 4
+            factor = -1 if "S" in state else 1
+            if state[0] == alvo[0]:
+                factor *= 0.75
+        elif "T" in state and "T" in alvo:
             x_i, x_f, factor = self.x(state)[1], self.x(alvo)[0] + 3 * self.size / 4, 1
         elif "T" in state and "S" in alvo:
             x_i, x_f, factor = self.x(state)[1], self.x(alvo)[0] + 3 * self.size / 4, 1
@@ -208,9 +219,9 @@ def transition_label(state, target, transition_type, rate, error):
 def transition_style(weight, fontsize, color):
     scale = np.sqrt(np.clip(weight, 0.0, 1.0))
     return {
-        "linewidth": 0.75 + 2.75 * scale,
-        "mutation_scale": 7.0 + 12.0 * scale,
-        "alpha": 0.35 + 0.6 * scale,
+        "linewidth": 1.35 + 2.15 * scale,
+        "mutation_scale": max(11.5, min(15.0, fontsize * 0.8)),
+        "alpha": 0.9,
         "color": color,
     }
 
@@ -241,7 +252,7 @@ def add_wavy_arrow(ax, x, y_start, y_end, style, label=None):
     arrow = patches.FancyArrowPatch(
         path=path,
         arrowstyle="-|>,head_length=0.32,head_width=0.22",
-        mutation_scale=max(6.0, style["mutation_scale"] * 0.75),
+        mutation_scale=style["mutation_scale"],
         color=style["color"],
         linewidth=style["linewidth"],
         alpha=style["alpha"],
@@ -332,7 +343,7 @@ def plot_transitions(data, ax, cutoff):
             color=S.color(state),
             zorder=6,
         )
-        fx, tx, curve = S.arrow(state, alvos[i])
+        fx, tx, curve = S.arrow(state, alvos[i], trans[i])
         a3 = patches.FancyArrowPatch(
             (fx, base),
             (tx, energies[i]),
@@ -539,7 +550,7 @@ def _legend_proxy(handle, label):
         [0, 0],
         color=color,
         alpha=alpha,
-        lw=max(1.5, linewidth),
+        lw=3.0,
         linestyle="-",
         solid_capstyle="round",
     )
@@ -584,11 +595,11 @@ def panel_legend_items(axes):
     return items
 
 
-def add_panel_legends(fig, items, bottom_margin):
-    legend_y = max(0.02, bottom_margin - 0.025)
+def add_panel_legends(fig, items):
     for ax, handles, labels in items:
         position = ax.get_position()
         center_x = position.x0 + position.width / 2
+        legend_y = max(0.02, position.y0 - 0.018)
         fontsize = diagram_legend_fontsize(ax, multi_panel=True)
         fig.legend(
             handles,
@@ -645,7 +656,7 @@ def finalize_diagram_layout(fig, axes, legend=False):
             axis_legend_items = panel_legend_items(axes)
             if axis_legend_items:
                 max_rows = max(len(labels) for _, _, labels in axis_legend_items)
-                bottom_margin = min(0.54, max(0.22, 0.095 + 0.048 * max_rows))
+                bottom_margin = min(0.48, max(0.16, 0.070 + 0.042 * max_rows))
 
     try:
         fig.tight_layout(rect=(0.02, bottom_margin, right_margin, 0.98), pad=0.4)
@@ -658,7 +669,7 @@ def finalize_diagram_layout(fig, axes, legend=False):
         )
 
     if axis_legend_items:
-        add_panel_legends(fig, axis_legend_items, bottom_margin)
+        add_panel_legends(fig, axis_legend_items)
 
 def make_diagram(files, dielec, cutoff=0.01):
     _, ax = plt.subplots()
@@ -815,9 +826,10 @@ def make_ensemble_diagram(
         consolidate_ground_labels(ax)
         write_energies(ax)
 
+    solvent_y = 0.96 if legend and len(used_axes) > 1 else 0
     used_axes[-1].text(
         1,
-        0,
+        solvent_y,
         f"$\\epsilon ={eps:.3f}$\n$n={refractive_index:.3f}$",
         transform=used_axes[-1].transAxes,
         fontsize=set_fontsize(used_axes[-1]),
