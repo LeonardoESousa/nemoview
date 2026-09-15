@@ -74,61 +74,64 @@ def fill(ax, xmin, xmax, y, text):
             fontsize=fontsize,
         )
 
-def format_number(rate, error_rate, unit="s^-1"):
-    # Check if the rate is zero
-    if rate <= 1e-99:
-        return f"0 ± 0 {unit}"
+def _format_rate_components(rate, error_rate):
+    """Return mantissa/exponent formatting components with uncertainty-aware rounding."""
+    if not np.isfinite(rate) or rate <= 1e-99:
+        return "0", "0", 0
 
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
-        exp = np.floor(np.nan_to_num(np.log10(rate)))
+        exp = int(np.floor(np.nan_to_num(np.log10(rate))))
 
-    # Adjust exponent to ensure the first number is >= 1
-    if rate / 10**exp < 1:
-        exp -= 1
+    scale = 10 ** exp
+    r = rate / scale
 
-    # Determine the number of significant figures for rate and error_rate
-    if np.isnan(error_rate) or error_rate == 0 or np.isnan(error_rate):
-        rate_sig_figs = 2
-        error_rate_sig_figs = 2  # No error rate provided
-    else:    
-        rate_sig_figs = max(0, -int(np.floor(np.log10(error_rate / 10**exp))))  # Ensure at least 1 significant figure
-        error_rate_sig_figs = max(0, -int(np.floor(np.log10(error_rate / 10**exp))))  # Ensure at least 1 significant figure
+    # Handle missing/zero uncertainties with a simple 2-sig-fig mantissa.
+    if not np.isfinite(error_rate) or error_rate <= 0:
+        r_dec = max(0, 1 - int(np.floor(np.log10(r))))
+        return f"{r:.{r_dec}f}", "0", exp
 
-    # Format the string without using LaTeX
+    e = error_rate / scale
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        e_order = int(np.floor(np.log10(e)))
+
+    e_lead = e / (10 ** e_order)
+    err_sig_figs = 2 if e_lead < 3 else 1
+
+    # When uncertainty is large relative to the value, keep one extra uncertainty digit.
+    if e / r > 0.5:
+        err_sig_figs = 2
+
+    err_decimals = max(0, -e_order + (err_sig_figs - 1))
+
+    # Avoid over-aggressive integer rounding in labels like (2 ± 2) x 10^8.
+    if err_decimals == 0:
+        err_decimals = 1
+
+    return f"{r:.{err_decimals}f}", f"{e:.{err_decimals}f}", exp
+
+
+def format_number(rate, error_rate, unit="s^-1"):
+    formatted_rate, formatted_error_rate, exp = _format_rate_components(rate, error_rate)
+
+    # Format the string without using LaTeX.
     if exp != 0:
-        formatted_rate = f"{rate/10**exp:.{rate_sig_figs}f}"
-        formatted_error_rate = f"{error_rate/10**exp:.{error_rate_sig_figs}f}"
-        formatted_string = f"({formatted_rate} ± {formatted_error_rate}) x 10^{int(exp)} {unit}"
+        formatted_string = f"({formatted_rate} ± {formatted_error_rate}) x 10^{exp} {unit}"
     else:
-        formatted_rate = f"{rate:.{rate_sig_figs}f}"
-        formatted_error_rate = f"{error_rate:.{error_rate_sig_figs}f}"
         formatted_string = f"{formatted_rate} ± {formatted_error_rate} {unit}"
 
     return formatted_string
 
 
 def format_rate(rate, error_rate, unit="$s^{-1}$"):
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore")
-        exp = np.floor(np.nan_to_num(np.log10(rate)))
-
-    # Adjust exponent to ensure the first number is >= 1
-    if rate / 10**exp < 1:
-        exp -= 1
-
-    # Determine the number of significant figures for rate and error_rate
-    if np.isnan(error_rate) or error_rate == 0:
-        rate_sig_figs = 2
-        error_rate_sig_figs = 2  # No error rate provided
-    else:    
-        rate_sig_figs = max(0, -int(np.floor(np.log10(error_rate / 10**exp))))  # Ensure at least 1 significant figure
-        error_rate_sig_figs = max(0, -int(np.floor(np.log10(error_rate / 10**exp))))  # Ensure at least 1 significant figure
+    formatted_rate, formatted_error_rate, exp = _format_rate_components(rate, error_rate)
 
     if exp != 0:
-        formatted_string = f"${rate/10**exp:.{rate_sig_figs}f}\\pm{error_rate/10**exp:.{error_rate_sig_figs}f}\\times10^{{{exp:.0f}}}$ " + unit
+        formatted_string = f"${formatted_rate}\\pm{formatted_error_rate}\\times10^{{{exp}}}$ " + unit
     else:
-        formatted_string = f"${rate:.{rate_sig_figs}f}\\pm{error_rate:.{error_rate_sig_figs}f}$ " + unit
+        formatted_string = f"${formatted_rate}\\pm{formatted_error_rate}$ " + unit
 
     return formatted_string
 
@@ -214,7 +217,7 @@ def plot_transitions(data, ax, cutoff):
             zorder=10,
             mutation_scale=weights[i],#relu(weights[i]),
         )
-        if np.round(weights[i], 2) > cutoff:
+        if weights[i] >= cutoff:
             if alvos[i] == "S0":
                 xmin, xmax = S.x(state)
                 if trans[i] == "-":
