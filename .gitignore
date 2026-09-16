@@ -1,6 +1,10 @@
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+*.egg-info/
+build/
+dist/
+testenv
+notebooks
 dashnemo*
-__pycache__
-*.egg*
-build
-favicon.ipynb
-test*

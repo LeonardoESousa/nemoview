@@ -7,23 +7,26 @@ name = "nemoview"
 dynamic = ["version"]
 description = 'Visualization tool for NEMO ensembles'
 readme = "README.md"
-requires-python = ">=3.8.0"
+requires-python = ">=3.11"
 license = { file =  "LICENSE"}
 authors = [{ name = "Leonardo Evaristo de Sousa", email = "ledso@dtu.dk" }]
 urls = { Homepage = "https://github.com/LeonardoESousa/nemoview" }
 
 dependencies = [
-  'matplotlib==3.9.0',
-  'voila==0.5.7',
-  'ipywidgets==8.1.3',
-  'pandas==1.5.3',
-  'IPython','Ipympl',
-  'jinja2',
-  'nemophoto>=1.3.2',
-  'ipykernel==6.29.5',
-  'numpy==1.26.4',
-  'colour-science==0.4.6'
+  'streamlit>=1.57,<2',
+  'plotly>=5.24,<7',
+  'matplotlib>=3.9,<4',
+  'IPython>=8',
+  'numpy>=1.26,<2',
+  'pandas>=1.5,<2',
+  'scipy>=1.10,<2',
+  'nemophoto @ git+https://github.com/LeonardoESousa/NEMO.git@fbadd5b9f2f3c616af77e4170ec7c712ebe23044',
+  'colour-science>=0.4.4,<0.4.7'
 ]
+
+[project.optional-dependencies]
+notebook = ['matplotlib>=3.9,<4', 'voila>=0.5,<1', 'ipywidgets>=8,<9', 'IPython', 'ipympl', 'ipykernel']
+test = ['pytest>=8', 'build']
 
 [project.scripts]
 nemoview = "nemoview.__main__:main"
@@ -38,3 +41,6 @@ exclude = ["tests", "*.tests", "*.tests.*", "tests.*"]
 
 [tool.setuptools.dynamic]
 version = { attr = "nemoview.__version__.__version__" }
+
+[tool.setuptools.package-data]
+nemoview = ['theme.toml']
